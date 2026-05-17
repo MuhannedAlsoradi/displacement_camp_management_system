@@ -1,6 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+
+import '../styles/colors.dart';
 
 class CampsManagementScreen extends StatelessWidget {
   CampsManagementScreen({super.key});
@@ -34,70 +34,44 @@ class CampsManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xfff5f7fb),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: Icon(Icons.arrow_forward),
-        title: Text(
-          'ادارة المخيمات قطاع غزة',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-        ),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Color(0xff136DEC1A),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.add, color: const Color(0xff136DEC), size: 30),
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // البحث
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'بحث عن مخيم...',
+              hintStyle: const TextStyle(color: AppColors.textHint),
+              prefixIcon: const Icon(Icons.search, color: AppColors.textHint),
+              filled: true,
+              fillColor: AppColors.backgroundCard,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
+
+          const SizedBox(height: 10),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              filterChip('الكل', true),
+              filterChip('مفتوح', false),
+              filterChip('ممتلئ', false),
+              filterChip('قيد الصيانة', false),
+            ],
+          ),
+          Expanded(
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              itemCount: camps.length,
+              itemBuilder: (context, index) => campCard(camps[index]),
+            ),
+          ),
         ],
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // البحث
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'بحث عن مخيم...',
-                prefixIcon: Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 10),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                filterChip('الكل', true),
-                filterChip('مفتوح', false),
-                filterChip('ممتلئ', false),
-                filterChip('قيد الصيانة ', false),
-              ],
-            ),
-
-            Expanded(
-              child: ListView.builder(
-                itemCount: camps.length,
-                itemBuilder: (context, index) => campCard(camps[index]),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -105,31 +79,46 @@ class CampsManagementScreen extends StatelessWidget {
   Widget filterChip(String text, bool selected) {
     return Chip(
       label: Text(text),
-      backgroundColor: selected ? Colors.blue : Colors.white,
-      labelStyle: TextStyle(color: selected ? Colors.white : Colors.black),
+      backgroundColor: selected ? AppColors.primary : AppColors.backgroundCard,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : AppColors.textPrimary,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: selected ? Colors.blue : Colors.white),
+        side: BorderSide(
+          color: selected ? AppColors.primary : AppColors.border,
+        ),
       ),
     );
   }
 
   Widget campCard(Map<String, dynamic> camp) {
     double percent = camp['current'] / camp['capacity'];
-    Color statusColor = camp['status'] == 'متاح' ? Colors.green : Colors.red;
+
+    // استخدام ألوان حالة المخيم من AppColors
+    Color statusColor = camp['status'] == 'متاح'
+        ? AppColors.statusStable
+        : AppColors.statusCritical;
+
+    // لون شريط التقدم بناءً على نسبة الامتلاء
+    Color progressColor = percent > 0.9
+        ? AppColors.statusCritical
+        : percent > 0.7
+            ? AppColors.statusWarning
+            : AppColors.statusStable;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+        color: AppColors.backgroundCard,
       ),
       child: Column(
         children: [
           Stack(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
@@ -140,12 +129,14 @@ class CampsManagementScreen extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-
               Positioned(
                 top: 10,
                 left: 10,
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor,
                     borderRadius: BorderRadius.circular(10),
@@ -155,29 +146,29 @@ class CampsManagementScreen extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(width: 5),
+                      const SizedBox(width: 5),
                       Text(
                         camp['status'],
-                        style: TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ],
                   ),
                 ),
               ),
-
               Positioned(
                 bottom: 10,
                 left: 10,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       camp['name'],
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -185,10 +176,10 @@ class CampsManagementScreen extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.location_on, color: Colors.white),
+                        const Icon(Icons.location_on, color: Colors.white),
                         Text(
                           camp['location'],
-                          style: TextStyle(color: Colors.white),
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
@@ -197,12 +188,12 @@ class CampsManagementScreen extends StatelessWidget {
               ),
             ],
           ),
-
           Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Color(0xfff5f7fb),
+                color: AppColors.surfaceSecondary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -210,18 +201,18 @@ class CampsManagementScreen extends StatelessWidget {
                 children: [
                   Column(
                     children: [
-                      Text(
-                        'السعة الاجمالية',
+                      const Text(
+                        'السعة الإجمالية',
                         style: TextStyle(
-                          color: Color(0xff617289),
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
                         '${camp['capacity']}',
-                        style: TextStyle(
-                          color: Color(0xff111418),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 17,
                         ),
@@ -230,18 +221,18 @@ class CampsManagementScreen extends StatelessWidget {
                   ),
                   Column(
                     children: [
-                      Text(
-                        'المقيمين حاليا',
+                      const Text(
+                        'المقيمون حالياً',
                         style: TextStyle(
-                          color: Color(0xff617289),
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       Text(
                         '${camp['current']}',
-                        style: TextStyle(
-                          color: Color(0xff111418),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 17,
                         ),
@@ -252,24 +243,23 @@ class CampsManagementScreen extends StatelessWidget {
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'نسبة الاشتعال ',
+                const Text(
+                  'نسبة الإشغال',
                   style: TextStyle(
-                    color: Color(0xff617289),
+                    color: AppColors.textSecondary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  '${percent * 100}%',
+                  '${(percent * 100).toStringAsFixed(0)}%',
                   style: TextStyle(
-                    color: percent > 0.9 ? Colors.red : Colors.blue,
+                    color: progressColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -277,7 +267,7 @@ class CampsManagementScreen extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: ClipRRect(
@@ -285,12 +275,12 @@ class CampsManagementScreen extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: percent,
                 minHeight: 10,
-                color: percent > 0.9 ? Colors.red : Colors.blue,
-                backgroundColor: Color(0xffDBE0E6),
+                color: progressColor,
+                backgroundColor: AppColors.border,
               ),
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 12),
         ],
       ),
     );

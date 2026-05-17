@@ -1,7 +1,11 @@
+import 'package:displacement_camp_management_system/layout/home_layout.dart';
+import 'package:displacement_camp_management_system/screen/role_selection_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../styles/colors.dart';
+
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key});
+  LoginScreen({super.key, required UserRole role});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -11,7 +15,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController usernameController = TextEditingController();
-
   final TextEditingController passwordController = TextEditingController();
 
   bool isPasswordHidden = true;
@@ -20,22 +23,16 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: AppColors.backgroundPage,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // gradient
+              // Header
               Container(
                 height: 220,
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF2F5D75), Color(0xFF4F8A8B)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
+                color: AppColors.primary,
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -43,22 +40,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.backgroundCard,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.home_work_outlined,
-                          color: Color(0xFF2F5D75),
+                          color: AppColors.primary,
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
                           "نظام إدارة المخيمات",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF2F5D75),
+                            color: AppColors.primaryDark,
                           ),
                         ),
                       ],
@@ -66,61 +63,116 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              // card
+
+              // Card
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 child: Card(
                   elevation: 12,
-                  shadowColor: Colors.black26,
+                  shadowColor: AppColors.primary200.withOpacity(0.3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
+                  color: AppColors.backgroundCard,
                   child: Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
                     child: Form(
                       key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'تسجيل الدخول ',
+                          const Text(
+                            'تسجيل الدخول',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                          Text(
-                            'يرجى ادخال بينات الاعتماد للوصول الي النظام ',
+                          const Text(
+                            'يرجى إدخال بيانات الاعتماد للوصول إلى النظام',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
-                          SizedBox(height: 25),
+                          const SizedBox(height: 25),
+
+                          // Username Field
                           TextFormField(
                             controller: usernameController,
                             decoration: InputDecoration(
-                              labelText: 'اسم المستخدم ',
-                              hintText: 'ادخل اسم المستخدم',
-                              prefixIcon: Icon(Icons.person),
+                              labelText: 'اسم المستخدم',
+                              labelStyle: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                              hintText: 'أدخل اسم المستخدم',
+                              hintStyle: const TextStyle(
+                                color: AppColors.textHint,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.person,
+                                color: AppColors.textHint,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.danger,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.danger,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'يرجي ادخال اسم المستخدم';
+                                return 'يرجى إدخال اسم المستخدم';
                               }
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 15),
+
+                          // Password Field
                           TextFormField(
                             controller: passwordController,
                             obscureText: isPasswordHidden,
                             decoration: InputDecoration(
                               labelText: 'كلمة المرور',
+                              labelStyle: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
                               hintText: '*******',
-                              prefixIcon: Icon(Icons.lock),
+                              hintStyle: const TextStyle(
+                                color: AppColors.textHint,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.lock,
+                                color: AppColors.textHint,
+                              ),
                               suffixIcon: IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -131,54 +183,99 @@ class _LoginScreenState extends State<LoginScreen> {
                                   isPasswordHidden
                                       ? Icons.visibility_off
                                       : Icons.visibility,
+                                  color: AppColors.textHint,
                                 ),
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.purple),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.danger,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: const BorderSide(
+                                  color: AppColors.danger,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'يرجي ادخال كلمة المرور';
+                                return 'يرجى إدخال كلمة المرور';
                               }
                               return null;
                             },
                           ),
+
+                          // Forgot Password
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {},
-                              child: Text('نسبت كلمة المرور؟'),
+                              child: const Text(
+                                'نسيت كلمة المرور؟',
+                                style: TextStyle(color: AppColors.secondary),
+                              ),
                             ),
                           ),
+
+                          // Login Button
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xff2A5D83),
-                              padding: EdgeInsets.symmetric(vertical: 15),
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            onPressed: () {},
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => HomeLayout(),
+                                    ));
+                              }
+                            },
                             child: isLoading
-                                ? CircularProgressIndicator()
-                                : Row(
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
                                         Icons.arrow_back,
                                         color: Colors.white,
                                       ),
+                                      SizedBox(width: 8),
                                       Text(
-                                        'تسجيل دخول ',
+                                        'تسجيل دخول',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.normal,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -191,44 +288,56 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // support
+              // Support
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: const [
                       Text(
-                        'دعم الفني',
-                        style: TextStyle(color: Colors.grey, fontSize: 18),
+                        'الدعم الفني',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 18,
+                        ),
                       ),
                       SizedBox(width: 8),
-                      Icon(Icons.headset_mic, color: Colors.grey),
+                      Icon(Icons.headset_mic, color: AppColors.textHint),
                     ],
                   ),
-                  SizedBox(height: 15),
-                  Text(
+                  const SizedBox(height: 15),
+                  const Text(
                     'Gaza Camp Management System 2026 ©',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                    style: TextStyle(
+                      color: AppColors.textHint,
+                      fontSize: 14,
+                    ),
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   Container(
-                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppColors.surfaceSecondary,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('دعم فني', style: TextStyle(color: Colors.grey)),
+                      children: const [
+                        Text(
+                          'دعم فني',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                         SizedBox(width: 6),
-                        Icon(Icons.shield, color: Colors.green, size: 18),
+                        Icon(Icons.shield, color: AppColors.success, size: 18),
                       ],
                     ),
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                 ],
               ),
             ],

@@ -1,112 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../styles/colors.dart';
 
 class DashboardAdminScreen extends StatelessWidget {
   const DashboardAdminScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF5F6FA),
-      bottomNavigationBar: _buildBottomNav(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// 🔹 Header
-              _buildHeader(),
+    return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// 🔹 Header
+            _buildHeader(),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              /// 🔹 Stats Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: _statCard(
-                      "عدد المخيمات",
-                      "12",
-                      "+12%",
-                      Icons.location_on,
-                      Colors.orange,
-                    ),
+            /// 🔹 Stats Cards
+            Row(
+              children: [
+                Expanded(
+                  child: _statCard(
+                    "عدد المخيمات",
+                    "12",
+                    "+12%",
+                    Icons.location_on,
+                    AppColors.warning,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statCard(
-                      "إجمالي النازحين",
-                      "1,240",
-                      "+5%",
-                      Icons.group,
-                      Colors.blue,
-                    ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _statCard(
+                    "إجمالي النازحين",
+                    "1,240",
+                    "+5%",
+                    Icons.group,
+                    AppColors.secondary,
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              /// 🔹 Blue Card
-              _blueCard(),
+            /// 🔹 Blue Card
+            _blueCard(),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              /// 🔹 Quick Actions
-              const Text(
-                "إجراءات سريعة",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+            /// 🔹 Quick Actions
+            const Text(
+              "إجراءات سريعة",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _actionButton(
-                      "شحنة جديدة",
-                      Icons.local_shipping,
-                      Colors.green,
-                    ),
+            Row(
+              children: [
+                Expanded(
+                  child: _actionButton(
+                    "شحنة جديدة",
+                    Icons.local_shipping,
+                    AppColors.primary,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _actionButton(
-                      "إضافة مستفيد",
-                      Icons.add,
-                      Colors.blue,
-                    ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _actionButton(
+                    "إضافة مستفيد",
+                    Icons.add,
+                    AppColors.secondary,
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              /// 🔹 Chart Placeholder
-              _chartCard(),
+            /// 🔹 Chart Placeholder
+            _chartCard(),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              /// 🔹 Activities
-              const Text(
-                "آخر النشاطات",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+            /// 🔹 Activities
+            const Text(
+              "آخر النشاطات",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
 
-              _activityItem(
-                "وصول شحنة أغذية",
-                "مخيم السلام - منذ 2 ساعة",
-                Icons.inventory,
-              ),
-              _activityItem(
-                "تسجيل عائلة جديدة",
-                "مخيم الأمل - منذ 5 ساعات",
-                Icons.person_add,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+            _activityItem(
+              "وصول شحنة أغذية",
+              "مخيم السلام - منذ 2 ساعة",
+              Icons.inventory,
+            ),
+            _activityItem(
+              "تسجيل عائلة جديدة",
+              "مخيم الأمل - منذ 5 ساعات",
+              Icons.person_add,
+            ),
+          ],
+        ));
   }
 
   /// ================= Widgets =================
@@ -115,17 +111,22 @@ class DashboardAdminScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Icon(Icons.notifications_none),
         Column(
-          children: const [
-            Text(
+          children: [
+            const Text(
               "أهلاً بك، مسؤول النظام",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            Text("15 محرم 1445", style: TextStyle(color: Colors.grey)),
+            Text(
+              DateFormat('EEEE, d MMMM yyyy', 'ar').format(DateTime.now()),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           ],
         ),
-        const CircleAvatar(),
+        const CircleAvatar(
+          backgroundColor: AppColors.primary100,
+          child: Icon(Icons.person),
+        ),
       ],
     );
   }
@@ -140,7 +141,7 @@ class DashboardAdminScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -148,7 +149,7 @@ class DashboardAdminScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(percent, style: const TextStyle(color: Colors.green)),
+              Text(percent, style: const TextStyle(color: AppColors.success)),
               CircleAvatar(
                 backgroundColor: color.withOpacity(0.1),
                 child: Icon(icon, color: color),
@@ -156,11 +157,15 @@ class DashboardAdminScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(color: Colors.grey)),
+          Text(title, style: const TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
         ],
       ),
@@ -171,11 +176,11 @@ class DashboardAdminScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xff2D6CDF),
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           CircleAvatar(
             backgroundColor: Colors.white24,
             child: Icon(Icons.volunteer_activism, color: Colors.white),
@@ -184,7 +189,10 @@ class DashboardAdminScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("المساعدات الموزعة", style: TextStyle(color: Colors.white)),
+              Text(
+                "المساعدات الموزعة",
+                style: TextStyle(color: Colors.white),
+              ),
               SizedBox(height: 6),
               Text(
                 "4,000 وحدة",
@@ -205,7 +213,7 @@ class DashboardAdminScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -213,7 +221,7 @@ class DashboardAdminScreen extends StatelessWidget {
         children: [
           Icon(icon, color: color),
           const SizedBox(width: 8),
-          Text(text),
+          Text(text, style: const TextStyle(color: AppColors.textPrimary)),
         ],
       ),
     );
@@ -224,10 +232,15 @@ class DashboardAdminScreen extends StatelessWidget {
       height: 180,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Center(child: Text("هنا الرسم البياني")),
+      child: const Center(
+        child: Text(
+          "هنا الرسم البياني",
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+      ),
     );
   }
 
@@ -236,14 +249,14 @@ class DashboardAdminScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: Colors.blue.withOpacity(0.1),
-            child: Icon(icon, color: Colors.blue),
+            backgroundColor: AppColors.secondary50,
+            child: Icon(icon, color: AppColors.secondary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -252,26 +265,25 @@ class DashboardAdminScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                Text(subtitle, style: const TextStyle(color: Colors.grey)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
               ],
             ),
           ),
-          const Icon(Icons.arrow_forward_ios, size: 16),
+          const Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: AppColors.textHint,
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return BottomNavigationBar(
-      currentIndex: 2,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: "الإعدادات"),
-        BottomNavigationBarItem(icon: Icon(Icons.home_work), label: "المخيمات"),
-        BottomNavigationBarItem(icon: Icon(Icons.grid_view), label: "الرئيسية"),
-      ],
     );
   }
 }

@@ -1,86 +1,69 @@
 import 'package:flutter/material.dart';
 
+import '../styles/colors.dart';
+
 class DisplacedManagementScreen extends StatelessWidget {
   const DisplacedManagementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xffF6F7F8),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: const Icon(Icons.notifications_none, color: Colors.black),
-        title: Text('ادارة النازحين', style: TextStyle(color: Colors.black)),
-        centerTitle: true,
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.blue,
-        child: Icon(Icons.add),
-      ),
-
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'ابحث بالاسم او رقم الهوية ',
-                  border: InputBorder.none,
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundCard,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const TextField(
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.search, color: AppColors.textHint),
+                hintText: 'ابحث بالاسم أو رقم الهوية',
+                hintStyle: TextStyle(color: AppColors.textHint),
+                border: InputBorder.none,
               ),
             ),
-
-            SizedBox(height: 10),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              filterChoiceChip('الكل', true),
+              filterChoiceChip('حسب المخيم', false),
+              filterChoiceChip('حسب العمر', false),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                "عرض الكل",
+                style: TextStyle(color: AppColors.secondary, fontSize: 12),
+              ),
+              Text(
+                "النتائج: 14 شخص",
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
               children: [
-                filterChoiceChip('الكل', true),
-                filterChoiceChip('حسب العمر', false),
-                filterChoiceChip('حسب العمر', false),
-              ],
-            ),
-
-            SizedBox(height: 8),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  "عرض الكل",
-                  style: TextStyle(color: Colors.blue, fontSize: 12),
-                ),
-                Text(
-                  "النتائج 14 شخص",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                personItem(
+                  "#4992831",
+                  "منى العلي",
+                  "مخيم السلام",
+                  "تم التسجيل",
+                  AppColors.statusStable,
                 ),
               ],
             ),
-
-            Expanded(
-              child: ListView(
-                children: [
-                  personItem(
-                    "#4992831",
-                    "منى العلي",
-                    "مخيم السلام",
-                    "تم التسجيل",
-                    Colors.green,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -89,10 +72,14 @@ class DisplacedManagementScreen extends StatelessWidget {
     return ChoiceChip(
       label: Text(text),
       selected: selected,
-      selectedColor: const Color(0xff2F80ED),
-      labelStyle: TextStyle(color: selected ? Colors.white : Colors.black),
+      selectedColor: AppColors.primary,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : AppColors.textPrimary,
+      ),
       onSelected: (_) {},
-      side: BorderSide(color: selected ? Colors.blue : Colors.white),
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.border,
+      ),
     );
   }
 
@@ -101,29 +88,38 @@ class DisplacedManagementScreen extends StatelessWidget {
     String name,
     String camp,
     String status,
-    Color color,
+    Color statusColor,
   ) {
     return Container(
       padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundCard,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          /// ... Menu
+          /// ID + Menu
           Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xffF0F2F5),
+                  color: AppColors.surfaceSecondary,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(id, style: const TextStyle(fontSize: 10)),
+                child: Text(
+                  id,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
-
-              const Icon(Icons.more_horiz, color: Colors.grey),
+              const Icon(Icons.more_horiz, color: AppColors.textHint),
             ],
           ),
 
@@ -134,37 +130,39 @@ class DisplacedManagementScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                /// ID
                 const SizedBox(height: 4),
-
-                /// Name
                 Text(
                   name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-
                 const SizedBox(height: 2),
-
-                /// Camp
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
                       camp,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.location_on, size: 12, color: Colors.grey),
+                    const Icon(
+                      Icons.location_on,
+                      size: 12,
+                      color: AppColors.textHint,
+                    ),
                   ],
                 ),
-
                 const SizedBox(height: 6),
-
-                /// Status
-                Text(status, style: TextStyle(color: color, fontSize: 11)),
+                Text(
+                  status,
+                  style: TextStyle(color: statusColor, fontSize: 11),
+                ),
               ],
             ),
           ),
@@ -185,7 +183,7 @@ class DisplacedManagementScreen extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: AppColors.statusStable,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
