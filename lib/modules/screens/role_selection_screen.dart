@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../styles/colors.dart';
+import '../../styles/colors.dart';
 import 'login_screen.dart';
 
 enum UserRole { admin, displaced, volunteer }

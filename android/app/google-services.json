@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "121482598276",
+    "project_id": "displacement-camp",
+    "storage_bucket": "displacement-camp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:121482598276:android:3e169f13e7e80e35b2afd1",
+        "android_client_info": {
+          "package_name": "com.azhar.dcms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJgPKYfSeDdaV-zk6pG3ldZxbq4cQ-SxI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

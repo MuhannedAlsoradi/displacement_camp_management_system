@@ -73,7 +73,6 @@ class DashboardScreen extends StatelessWidget {
                   subtitle: 'نشط حالياً',
                   icon: Icons.location_on,
                 ),
-
                 _buildCard(
                   title: 'عدد النازحين',
                   value: '25,430',
@@ -82,14 +81,12 @@ class DashboardScreen extends StatelessWidget {
                   valueColor: Colors.blueGrey,
                   subtitleColor: Colors.green,
                 ),
-
                 _buildCard(
                   title: 'السعة المتاحة',
                   value: '1,200',
                   subtitle: 'متاح للتسجيل',
                   icon: Icons.event_seat,
                 ),
-
                 _buildProgressCard(),
               ],
             ),

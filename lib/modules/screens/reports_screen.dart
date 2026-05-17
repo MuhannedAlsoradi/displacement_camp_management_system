@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../styles/colors.dart';
+import '../../styles/colors.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});

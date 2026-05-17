@@ -1,18 +1,18 @@
-import 'package:displacement_camp_management_system/screen/camps_management_Screen.dart';
-import 'package:displacement_camp_management_system/screen/displaced_management_screen.dart';
-import 'package:displacement_camp_management_system/screen/reports_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/camps_management_Screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/displaced_management_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/reports_screen.dart';
 import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:displacement_camp_management_system/shared/cubit/app_states.dart';
 
-import '../screen/dashboard_admin_screen.dart';
+import '../modules/screens/dashboard_admin_screen.dart';
 import '../styles/colors.dart';
 
 class HomeLayout extends StatelessWidget {
   const HomeLayout({super.key});
 
-  static List<Widget> _screens = [
+  static const List<Widget> _screens = [
     DashboardAdminScreen(),
     CampsManagementScreen(),
     DisplacedManagementScreen(),
@@ -60,7 +60,7 @@ class HomeLayout extends StatelessWidget {
           appBar: AppBar(
             actions: [
               IconButton(
-                icon: Icon(Icons.notifications_none),
+                icon: const Icon(Icons.notifications_none),
                 onPressed: () {},
               ),
             ],
@@ -77,8 +77,8 @@ class HomeLayout extends StatelessWidget {
             backgroundColor: AppColors.backgroundCard,
             elevation: 0,
             scrolledUnderElevation: 0,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(1),
               child: Divider(
                 height: 1,
                 thickness: 1,
@@ -91,9 +91,9 @@ class HomeLayout extends StatelessWidget {
             children: _screens,
           ),
           bottomNavigationBar: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.backgroundCard,
-              border: const Border(
+              border: Border(
                 top: BorderSide(color: AppColors.border, width: 1),
               ),
             ),

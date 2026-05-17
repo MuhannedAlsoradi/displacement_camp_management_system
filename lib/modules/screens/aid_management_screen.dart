@@ -68,9 +68,9 @@ class AidManagementScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             /// العنوان
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
                   "التوزيعات الأخيرة",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -122,14 +122,14 @@ class AidManagementScreen extends StatelessWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       /// Bottom Navigation
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
+      bottomNavigationBar: const BottomAppBar(
+        shape: CircularNotchedRectangle(),
         notchMargin: 8,
         child: SizedBox(
           height: 60,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
+            children: [
               Icon(Icons.person),
               Icon(Icons.campaign),
               SizedBox(width: 40), // فراغ للزر
@@ -162,7 +162,6 @@ class AidManagementScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text(title)),
-
                 CircleAvatar(
                   backgroundColor: color.withOpacity(0.2),
                   child: Icon(icon, color: color),

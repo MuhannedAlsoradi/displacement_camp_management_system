@@ -1,8 +1,11 @@
 import 'package:displacement_camp_management_system/layout/home_layout.dart';
-import 'package:displacement_camp_management_system/screen/role_selection_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/role_selection_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../styles/colors.dart';
+import '../../shared/cubit/app_cubit.dart';
+import '../../shared/cubit/app_states.dart';
+import '../../styles/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key, required UserRole role});
@@ -238,49 +241,70 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-
-                          // Login Button
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
+                          BlocConsumer<AppCubit, AppStates>(
+                            listener: (context, state) {
+                              if (state is LoginSuccessState) {
                                 Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => HomeLayout(),
-                                    ));
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => HomeLayout()),
+                                );
+                              }
+                              if (state is LoginErrorState) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(state.error),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
                               }
                             },
-                            child: isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_back,
-                                        color: Colors.white,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'تسجيل دخول',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                            builder: (context, state) {
+                              return ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 15),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
                                   ),
-                          ),
+                                ),
+                                onPressed: state is LoginLoadingState
+                                    ? null
+                                    : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          AppCubit.get(context)
+                                              .loginWithUsername(
+                                            usernameController.text.trim(),
+                                            passwordController.text.trim(),
+                                          );
+                                        }
+                                      },
+                                child: state is LoginLoadingState
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white)
+                                    : const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.arrow_back,
+                                              color: Colors.white),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'تسجيل دخول',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              );
+                            },
+                          ), // Login Button
                         ],
                       ),
                     ),
