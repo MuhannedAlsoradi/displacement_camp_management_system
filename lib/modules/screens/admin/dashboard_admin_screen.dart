@@ -1,9 +1,11 @@
+import 'package:displacement_camp_management_system/modules/screens/admin/add_camp_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/admin/add_familiy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../../styles/colors.dart';
-import '../../shared/cubit/app_cubit.dart';
-import '../../shared/cubit/app_states.dart';
+import '../../../styles/colors.dart';
+import '../../../shared/cubit/app_cubit.dart';
+import '../../../shared/cubit/app_states.dart';
 
 class DashboardAdminScreen extends StatefulWidget {
   const DashboardAdminScreen({super.key});
@@ -16,7 +18,6 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
   @override
   void initState() {
     super.initState();
-    // جلب كل البيانات عند فتح الشاشة
     AppCubit.get(context).getDashboardStats();
   }
 
@@ -30,13 +31,40 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
       builder: (context, state) {
         final cubit = AppCubit.get(context);
 
-        // ─── Loading: مؤشر واحد فقط لكل الصفحة ───
+        // ─── Loading ───────────────────────────────────────────
         if (state is DashboardLoadingState) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // ─── Error ─────────────────────────────────────────────
+        if (state is DashboardErrorState) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  'حدث خطأ:\n${state.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => cubit.getDashboardStats(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('إعادة المحاولة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
+        // ─── Success ───────────────────────────────────────────
         final stats = cubit.dashboardStats;
         final activities = cubit.recentActivities;
 
@@ -46,109 +74,130 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// 🔹 Header
+              /// Header
               _buildHeader(cubit.currentUsername ?? 'مسؤول النظام'),
 
               const SizedBox(height: 20),
 
-              /// 🔹 Stats Cards
               Row(
                 children: [
                   Expanded(
                     child: _statCard(
-                      "عدد المخيمات",
-                      '${stats['totalCamps'] ?? 0}',
-                      "${stats['campsPercent'] ?? '+0%'}",
-                      Icons.location_on,
-                      AppColors.warning,
+                      title: "عدد المخيمات",
+                      value: '${stats['totalCamps'] ?? 0}',
+                      badge: '${stats['campsPercent'] ?? '0 نشط'}',
+                      icon: Icons.location_on,
+                      color: AppColors.warning,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _statCard(
-                      "إجمالي النازحين",
-                      '${stats['totalDisplaced'] ?? 0}',
-                      "${stats['displacedPercent'] ?? '+0%'}",
-                      Icons.group,
-                      AppColors.secondary,
+                      title: "إجمالي النازحين",
+                      value: '${stats['totalDisplaced'] ?? 0}',
+                      badge: "${stats['occupancyPercent'] ?? '0'}% امتلاء",
+                      icon: Icons.group,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              /// بطاقتان: العائلات + المخيمات النشطة
+              Row(
+                children: [
+                  Expanded(
+                    child: _miniStatCard(
+                      title: "إجمالي العائلات",
+                      // ← هذا عدد العائلات (documents)
+                      value: '${stats['totalFamilies'] ?? 0}',
+                      icon: Icons.family_restroom,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _miniStatCard(
+                      title: "مخيمات نشطة",
+                      value: '${stats['activeCamps'] ?? 0}',
+                      icon: Icons.location_city,
+                      color: AppColors.success,
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              /// 🔹 Blue Card — المساعدات الموزعة
+              /// البطاقة الزرقاء — المساعدات الموزعة
               _blueCard('${stats['totalAid'] ?? 0} وحدة'),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              /// 🔹 Quick Actions
+              /// إجراءات سريعة — GridView 2×2
               const Text(
                 "إجراءات سريعة",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-
-              Row(
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  Expanded(
-                    child: _actionButton(
-                      "شحنة جديدة",
-                      Icons.local_shipping,
-                      AppColors.primary,
-                      onTap: () {},
-                    ),
+                  _actionButton(
+                    "تسجيل عائلة",
+                    Icons.group_add,
+                    AppColors.secondary,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddFamilyScreen(),
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _actionButton(
-                      "إضافة مستفيد",
-                      Icons.add,
-                      AppColors.secondary,
-                      onTap: () {},
-                    ),
+                  _actionButton(
+                    "شحنة جديدة",
+                    Icons.local_shipping,
+                    AppColors.primary,
+                    onTap: () {},
+                  ),
+                  _actionButton(
+                    "إضافة مخيم",
+                    Icons.add_location_alt,
+                    AppColors.warning,
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddCampScreen(),
+                          ));
+                    },
+                  ),
+                  _actionButton(
+                    "توزيع مساعدات",
+                    Icons.volunteer_activism,
+                    AppColors.success,
+                    onTap: () {},
                   ),
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              /// 🔹 Stats Row — عائلات + مخيمات نشطة
-              Row(
-                children: [
-                  Expanded(
-                    child: _miniStatCard(
-                      "إجمالي العائلات",
-                      '${stats['totalFamilies'] ?? 0}',
-                      Icons.family_restroom,
-                      AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _miniStatCard(
-                      "مخيمات نشطة",
-                      '${stats['activeCamps'] ?? 0}',
-                      Icons.location_city,
-                      AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              /// 🔹 Activities
+              /// آخر النشاطات
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "آخر النشاطات",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     onPressed: () => cubit.getDashboardStats(),
@@ -169,6 +218,8 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                     _getActivityColor(activity['type'] ?? ''),
                   ),
                 ),
+
+              const SizedBox(height: 12),
             ],
           ),
         );
@@ -195,24 +246,21 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
             ),
           ],
         ),
-        GestureDetector(
-          onTap: () {},
-          child: const CircleAvatar(
-            backgroundColor: AppColors.primary100,
-            child: Icon(Icons.person, color: AppColors.primary),
-          ),
+        const CircleAvatar(
+          backgroundColor: AppColors.primary100,
+          child: Icon(Icons.person, color: AppColors.primary),
         ),
       ],
     );
   }
 
-  Widget _statCard(
-    String title,
-    String value,
-    String percent,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _statCard({
+    required String title,
+    required String value,
+    required String badge,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -220,11 +268,24 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(percent, style: const TextStyle(color: AppColors.success)),
+              // badge — نشاط أو نسبة
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  badge,
+                  style:
+                      const TextStyle(color: AppColors.success, fontSize: 11),
+                ),
+              ),
               CircleAvatar(
                 backgroundColor: color.withOpacity(0.1),
                 child: Icon(icon, color: color),
@@ -232,12 +293,16 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(color: AppColors.textSecondary)),
+          Text(
+            title,
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
           const SizedBox(height: 6),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
@@ -284,12 +349,12 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
     );
   }
 
-  Widget _miniStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _miniStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -309,15 +374,13 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
+                    color: AppColors.textSecondary, fontSize: 11),
               ),
               Text(
                 value,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: 20,
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -337,17 +400,31 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.backgroundCard,
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color),
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
             const SizedBox(width: 8),
-            Text(text, style: const TextStyle(color: AppColors.textPrimary)),
+            Text(
+              text,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -392,11 +469,8 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
               ],
             ),
           ),
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: AppColors.textHint,
-          ),
+          const Icon(Icons.arrow_forward_ios,
+              size: 16, color: AppColors.textHint),
         ],
       ),
     );

@@ -1,16 +1,30 @@
-import 'package:displacement_camp_management_system/modules/screens/camps_management_Screen.dart';
-import 'package:displacement_camp_management_system/modules/screens/displaced_management_screen.dart';
-import 'package:displacement_camp_management_system/modules/screens/reports_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/admin/dashboard_admin_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/notification_screen.dart';
+import 'package:displacement_camp_management_system/modules/screens/admin/reports_screen.dart';
 import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:displacement_camp_management_system/shared/cubit/app_states.dart';
 
-import '../modules/screens/dashboard_admin_screen.dart';
+import '../modules/screens/admin/camps_management_Screen.dart';
+import '../modules/screens/admin/displaced_management_screen.dart';
 import '../styles/colors.dart';
 
-class HomeLayout extends StatelessWidget {
+class HomeLayout extends StatefulWidget {
   const HomeLayout({super.key});
+
+  @override
+  State<HomeLayout> createState() => _HomeLayoutState();
+}
+
+class _HomeLayoutState extends State<HomeLayout> {
+  @override
+  void initState() {
+    super.initState();
+    // ابدأ كل الـ Streams مرة واحدة عند فتح الـ HomeLayout
+    // (تعمل حتى لو فُتح التطبيق بدون المرور بشاشة تسجيل الدخول)
+    AppCubit.get(context).startAllListeners();
+  }
 
   static const List<Widget> _screens = [
     DashboardAdminScreen(),
@@ -56,12 +70,19 @@ class HomeLayout extends StatelessWidget {
       builder: (context, state) {
         final cubit = AppCubit.get(context);
         return Scaffold(
-          backgroundColor: AppColors.backgroundPage,
+          backgroundColor: const Color(0xFFF5F7FA),
           appBar: AppBar(
             actions: [
               IconButton(
-                icon: const Icon(Icons.notifications_none),
-                onPressed: () {},
+                icon: const Icon(Icons.notifications),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotificationScreen(),
+                    ),
+                  );
+                },
               ),
             ],
             automaticallyImplyLeading: false,
@@ -79,11 +100,7 @@ class HomeLayout extends StatelessWidget {
             scrolledUnderElevation: 0,
             bottom: const PreferredSize(
               preferredSize: Size.fromHeight(1),
-              child: Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.border,
-              ),
+              child: Divider(height: 1, thickness: 1, color: AppColors.border),
             ),
           ),
           body: IndexedStack(

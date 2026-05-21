@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/enums/user_role.dart'; // ← enum مشترك
 import '../../styles/colors.dart';
 import 'login_screen.dart';
 
-enum UserRole { admin, displaced, volunteer }
+// UserRole enum محذوف من هنا — موجود في user_role.dart
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});

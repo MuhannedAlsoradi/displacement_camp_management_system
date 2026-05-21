@@ -26,6 +26,8 @@ class CampsErrorState extends AppStates {
   CampsErrorState(this.error);
 }
 
+class AddCampLoadingState extends AppStates {}
+
 class AddCampSuccessState extends AppStates {}
 
 class AddCampErrorState extends AppStates {
@@ -44,6 +46,8 @@ class DisplacedErrorState extends AppStates {
 }
 
 class AddDisplacedSuccessState extends AppStates {}
+
+class AddDisplacedLoadingState extends AppStates {}
 
 class AddDisplacedErrorState extends AppStates {
   final String error;
@@ -71,4 +75,23 @@ class UploadFileSuccessState extends AppStates {
 class UploadFileErrorState extends AppStates {
   final String error;
   UploadFileErrorState(this.error);
+}
+
+// Sync (Volunteer offline → online)
+class SyncLoadingState extends AppStates {}
+
+class SyncSuccessState extends AppStates {}
+
+class SyncErrorState extends AppStates {
+  final String error;
+  SyncErrorState(this.error);
+}
+
+class IdpFamilyLoadingState extends AppStates {}
+
+class IdpFamilySuccessState extends AppStates {}
+
+class IdpFamilyErrorState extends AppStates {
+  final String error;
+  IdpFamilyErrorState(this.error);
 }

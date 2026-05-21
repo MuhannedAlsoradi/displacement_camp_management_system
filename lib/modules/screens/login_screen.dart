@@ -1,15 +1,17 @@
-import 'package:displacement_camp_management_system/layout/home_layout.dart';
-import 'package:displacement_camp_management_system/modules/screens/role_selection_screen.dart';
+import 'package:displacement_camp_management_system/layout/admin_home_layout.dart';
+import 'package:displacement_camp_management_system/layout/idp_home_layout.dart';
+import 'package:displacement_camp_management_system/layout/volunteer_home_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../shared/cubit/app_cubit.dart';
 import '../../shared/cubit/app_states.dart';
+import '../../shared/enums/user_role.dart';
 import '../../styles/colors.dart';
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key, required UserRole role});
-
+  LoginScreen({super.key, required this.role});
+  final UserRole role;
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -244,11 +246,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           BlocConsumer<AppCubit, AppStates>(
                             listener: (context, state) {
                               if (state is LoginSuccessState) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => HomeLayout()),
-                                );
+                                switch (AppCubit.get(context).currentRole!) {
+                                  case UserRole.displaced:
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const IdpHomeLayout()),
+                                      (route) => false,
+                                    );
+                                    break;
+                                  case UserRole.admin:
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => const HomeLayout()),
+                                      (route) => false,
+                                    );
+                                  case UserRole.volunteer:
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const VolunteerHomeLayout()),
+                                      (route) => false,
+                                    );
+                                    break;
+                                }
                               }
                               if (state is LoginErrorState) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -279,6 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               .loginWithUsername(
                                             usernameController.text.trim(),
                                             passwordController.text.trim(),
+                                            expectedRole: widget.role,
                                           );
                                         }
                                       },

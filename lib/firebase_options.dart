@@ -34,21 +34,23 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // إعدادات الأندرويد مأخوذة بدقة من ملف google-services.json الجديد
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBJgPKYfSeDdaV-zk6pG3ldZxbq4cQ-SxI',
-    appId: '1:121482598276:android:3e169f13e7e80e35b2afd1',
-    messagingSenderId: '121482598276',
-    projectId: 'displacement-camp',
-    storageBucket: 'displacement-camp.firebasestorage.app',
+    apiKey: 'AIzaSyD0F-ELKoFlWsXQgIrlEtYIhK0Zpbt64MQ',
+    appId: '1:201947454334:android:2f0468984e0554aa85f12f',
+    messagingSenderId: '201947454334',
+    projectId: 'displaced-camps',
+    storageBucket: 'displaced-camps.firebasestorage.app',
   );
 
-  // Web config — fill in if you add Web support later
+  // إعدادات الويب المحدثة بناءً على بيانات المشروع الجديد
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBJgPKYfSeDdaV-zk6pG3ldZxbq4cQ-SxI',
-    appId: '1:121482598276:web:XXXXXXXXXXXXXXXX', // ← استبدل بعد إضافة Web app
-    messagingSenderId: '121482598276',
-    projectId: 'displacement-camp',
-    storageBucket: 'displacement-camp.firebasestorage.app',
-    authDomain: 'displacement-camp.firebaseapp.com',
+    apiKey: 'AIzaSyD0F-ELKoFlWsXQgIrlEtYIhK0Zpbt64MQ',
+    appId:
+        '1:201947454334:web:xxxxxxxxxxxxxxxxxxxxxx', // ستحتاج لاستبدال هذا المعرّف إذا أنشأت Web App داخل الفيربيس لاحقاً
+    messagingSenderId: '201947454334',
+    projectId: 'displaced-camps',
+    storageBucket: 'displaced-camps.firebasestorage.app',
+    authDomain: 'displaced-camps.firebaseapp.com',
   );
 }

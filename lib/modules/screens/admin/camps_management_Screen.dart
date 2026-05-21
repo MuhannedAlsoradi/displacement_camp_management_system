@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../styles/colors.dart';
-import '../../shared/cubit/app_cubit.dart';
-import '../../shared/cubit/app_states.dart';
+import '../../../styles/colors.dart';
+import '../../../shared/cubit/app_cubit.dart';
+import '../../../shared/cubit/app_states.dart';
 
 class CampsManagementScreen extends StatefulWidget {
   const CampsManagementScreen({super.key});
@@ -87,33 +87,42 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
         _applyFilter(cubit.camps);
 
         return Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
           child: Column(
             children: [
               // ─── البحث ────────────────────────────────────
-              TextField(
-                controller: _searchController,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'بحث عن مخيم...',
-                  hintStyle: const TextStyle(color: AppColors.textHint),
-                  prefixIcon:
-                      const Icon(Icons.search, color: AppColors.textHint),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close,
-                              color: AppColors.textHint),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.backgroundCard,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundCard,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'بحث عن مخيم...',
+                    hintStyle:
+                        TextStyle(color: AppColors.textHint, fontSize: 13),
+                    prefixIcon:
+                        const Icon(Icons.search, color: AppColors.textHint),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close,
+                                color: AppColors.textHint),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    filled: true,
+                    fillColor: AppColors.backgroundCard,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
               ),
@@ -178,7 +187,6 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
                 child: _filteredCamps.isEmpty
                     ? _emptyState()
                     : ListView.builder(
-                        physics: const BouncingScrollPhysics(),
                         itemCount: _filteredCamps.length,
                         itemBuilder: (context, index) =>
                             _campCard(_filteredCamps[index], cubit),
@@ -240,7 +248,6 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
       ),
       child: Column(
         children: [
-          // ─── صورة المخيم ────────────────────────────────
           Stack(
             children: [
               ClipRRect(
@@ -250,11 +257,29 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
                 ),
                 child: _buildCampImage(camp['image']),
               ),
-
-              // badge الحالة
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.2),
+                        Colors.black.withOpacity(0.8),
+                      ],
+                      stops: const [0.5, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ),
               Positioned(
                 top: 10,
-                left: 10,
+                right: 10,
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -285,7 +310,7 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
               // زر الخيارات
               Positioned(
                 top: 8,
-                right: 8,
+                left: 8,
                 child: PopupMenuButton<String>(
                   icon: const CircleAvatar(
                     backgroundColor: Colors.black38,
@@ -316,7 +341,7 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
               // اسم وموقع المخيم
               Positioned(
                 bottom: 10,
-                left: 10,
+                right: 10,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
