@@ -1,6 +1,6 @@
-import 'package:displacement_camp_management_system/modules/screens/role_selection_screen.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
-import 'package:displacement_camp_management_system/styles/colors.dart';
+import 'package:displacement_camp_management_system/views/screens/role_selection_screen.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

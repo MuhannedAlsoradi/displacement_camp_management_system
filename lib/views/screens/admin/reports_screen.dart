@@ -1,9 +1,9 @@
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_states.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../styles/colors.dart';
+import '../../../utils/styles/colors.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});

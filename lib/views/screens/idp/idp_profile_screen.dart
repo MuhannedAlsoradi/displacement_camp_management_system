@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:displacement_camp_management_system/styles/colors.dart';
+import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 
-import '../../../shared/cubit/app_cubit.dart';
+import '../../../controllers/cubit/app_cubit.dart';
 
 class IdpProfileScreen extends StatefulWidget {
   const IdpProfileScreen({super.key});

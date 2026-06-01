@@ -1,13 +1,14 @@
-import 'package:displacement_camp_management_system/layout/admin_home_layout.dart';
-import 'package:displacement_camp_management_system/layout/idp_home_layout.dart';
-import 'package:displacement_camp_management_system/layout/volunteer_home_layout.dart';
+import 'package:displacement_camp_management_system/views/layout/admin_layout_screen.dart';
+import 'package:displacement_camp_management_system/views/layout/idp_layout_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../shared/cubit/app_cubit.dart';
-import '../../shared/cubit/app_states.dart';
-import '../../shared/enums/user_role.dart';
-import '../../styles/colors.dart';
+import '../layout/volunteer_layout_screen.dart';
+import '../../controllers/cubit/app_cubit.dart';
+import '../../controllers/cubit/app_states.dart';
+import '../../utils/enums/user_role.dart';
+import '../../utils/styles/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key, required this.role});
@@ -268,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (_) =>
-                                              const VolunteerHomeLayout()),
+                                              const VolunteerLayoutScreen()),
                                       (route) => false,
                                     );
                                     break;

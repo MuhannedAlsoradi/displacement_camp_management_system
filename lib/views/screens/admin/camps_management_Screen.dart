@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../styles/colors.dart';
-import '../../../shared/cubit/app_cubit.dart';
-import '../../../shared/cubit/app_states.dart';
+import '../../../utils/styles/colors.dart';
+import '../../../controllers/cubit/app_cubit.dart';
+import '../../../controllers/cubit/app_states.dart';
 
 class CampsManagementScreen extends StatefulWidget {
   const CampsManagementScreen({super.key});

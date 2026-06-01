@@ -1,9 +1,9 @@
-import 'package:displacement_camp_management_system/styles/colors.dart';
+import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../shared/cubit/app_cubit.dart';
-import '../../../shared/cubit/app_states.dart';
+import '../../../controllers/cubit/app_cubit.dart';
+import '../../../controllers/cubit/app_states.dart';
 
 class AddCampScreen extends StatefulWidget {
   const AddCampScreen({super.key});

@@ -1,9 +1,9 @@
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../shared/cubit/app_states.dart';
-import '../../../styles/colors.dart';
+import '../../../controllers/cubit/app_states.dart';
+import '../../../utils/styles/colors.dart';
 
 class DisplacedManagementScreen extends StatefulWidget {
   const DisplacedManagementScreen({super.key});

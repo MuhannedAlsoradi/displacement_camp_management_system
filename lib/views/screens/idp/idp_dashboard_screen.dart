@@ -1,5 +1,5 @@
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
-import 'package:displacement_camp_management_system/styles/colors.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 
 class IdpDashboardScreen extends StatelessWidget {

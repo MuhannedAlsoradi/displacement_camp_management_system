@@ -87,6 +87,7 @@ class SyncErrorState extends AppStates {
   SyncErrorState(this.error);
 }
 
+// IDP Family
 class IdpFamilyLoadingState extends AppStates {}
 
 class IdpFamilySuccessState extends AppStates {}
@@ -95,3 +96,6 @@ class IdpFamilyErrorState extends AppStates {
   final String error;
   IdpFamilyErrorState(this.error);
 }
+
+// Notifications ← جديد
+class NotificationsSuccessState extends AppStates {}

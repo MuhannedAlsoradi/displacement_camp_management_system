@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
-import 'package:displacement_camp_management_system/styles/colors.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 
-import '../modules/screens/idp/idp_aidrequest_screen.dart';
-import '../modules/screens/idp/idp_dashboard_screen.dart';
-import '../modules/screens/idp/idp_notifications_screen.dart';
-import '../modules/screens/idp/idp_profile_screen.dart';
+import '../screens/idp/idp_aidrequest_screen.dart';
+import '../screens/idp/idp_dashboard_screen.dart';
+import '../screens/idp/idp_profile_screen.dart';
+import '../screens/shared_notification_screen.dart';
 
 class IdpHomeLayout extends StatefulWidget {
   const IdpHomeLayout({super.key});
@@ -22,7 +22,7 @@ class _IdpHomeLayoutState extends State<IdpHomeLayout> {
   static const List<Widget> _screens = [
     IdpDashboardScreen(),
     IdpAidRequestScreen(),
-    IdpNotificationsScreen(),
+    SharedNotificationsScreen(),
     IdpProfileScreen(),
   ];
 

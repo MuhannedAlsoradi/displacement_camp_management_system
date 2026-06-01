@@ -1,14 +1,14 @@
-import 'package:displacement_camp_management_system/modules/screens/admin/dashboard_admin_screen.dart';
-import 'package:displacement_camp_management_system/modules/screens/notification_screen.dart';
-import 'package:displacement_camp_management_system/modules/screens/admin/reports_screen.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_cubit.dart';
+import 'package:displacement_camp_management_system/views/screens/admin/dashboard_admin_screen.dart';
+import 'package:displacement_camp_management_system/views/screens/admin/reports_screen.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_states.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
 
-import '../modules/screens/admin/camps_management_Screen.dart';
-import '../modules/screens/admin/displaced_management_screen.dart';
-import '../styles/colors.dart';
+import '../screens/admin/camps_management_Screen.dart';
+import '../screens/admin/displaced_management_screen.dart';
+import '../../utils/styles/colors.dart';
+import '../screens/shared_notification_screen.dart';
 
 class HomeLayout extends StatefulWidget {
   const HomeLayout({super.key});
@@ -79,7 +79,7 @@ class _HomeLayoutState extends State<HomeLayout> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => NotificationScreen(),
+                      builder: (context) => SharedNotificationsScreen(),
                     ),
                   );
                 },

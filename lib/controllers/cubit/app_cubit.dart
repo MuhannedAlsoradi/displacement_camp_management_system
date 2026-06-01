@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:displacement_camp_management_system/shared/cubit/app_states.dart';
-import 'package:displacement_camp_management_system/shared/enums/user_role.dart';
+import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
+import 'package:displacement_camp_management_system/utils/enums/user_role.dart';
 
 class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(InitState());
@@ -25,6 +25,7 @@ class AppCubit extends Cubit<AppStates> {
   StreamSubscription? _familiesSubscription;
   StreamSubscription? _activitiesSubscription;
   StreamSubscription? _aidSubscription;
+  StreamSubscription? _notificationsSubscription; // ← جديد
 
   // ════════════════════════════════════════════════════════
   //  Navigation
@@ -41,7 +42,7 @@ class AppCubit extends Cubit<AppStates> {
   // ════════════════════════════════════════════════════════
   User? currentUser;
   String? currentUsername;
-  UserRole? currentRole; // ← الدور بعد تسجيل الدخول
+  UserRole? currentRole;
 
   Future<void> loginWithUsername(
     String username,
@@ -88,9 +89,11 @@ class AppCubit extends Cubit<AppStates> {
       switch (currentRole!) {
         case UserRole.admin:
           startAllListeners();
+          listenToNotifications(); // ← جديد
           break;
         case UserRole.volunteer:
           startVolunteerListeners();
+          listenToNotifications(); // ← جديد
           break;
         case UserRole.displaced:
           final familyId = userData['familyId'] as String?;
@@ -99,6 +102,7 @@ class AppCubit extends Cubit<AppStates> {
             return;
           }
           await getIdpFamily(familyId);
+          listenToNotifications(); // ← جديد
           break;
       }
 
@@ -116,6 +120,7 @@ class AppCubit extends Cubit<AppStates> {
     currentUser = null;
     currentUsername = null;
     currentRole = null;
+    notifications = []; // ← مسح الإشعارات عند تسجيل الخروج
     emit(LogoutSuccessState());
   }
 
@@ -152,7 +157,6 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> syncPendingData() async {
     emit(SyncLoadingState());
     try {
-      // أضف منطق المزامنة هنا لاحقاً (Hive / SharedPreferences)
       await Future.delayed(const Duration(seconds: 1));
       emit(SyncSuccessState());
     } catch (e) {
@@ -166,6 +170,7 @@ class AppCubit extends Cubit<AppStates> {
     _familiesSubscription?.cancel();
     _activitiesSubscription?.cancel();
     _aidSubscription?.cancel();
+    _notificationsSubscription?.cancel(); // ← جديد
   }
 
   @override
@@ -180,7 +185,6 @@ class AppCubit extends Cubit<AppStates> {
   List<Map<String, dynamic>> camps = [];
 
   void listenToCamps() {
-    // إلغاء أي subscription سابق قبل إنشاء واحد جديد
     _campsSubscription?.cancel();
 
     emit(CampsLoadingState());
@@ -195,14 +199,12 @@ class AppCubit extends Cubit<AppStates> {
           return {'id': doc.id, ...doc.data()};
         }).toList();
         emit(CampsSuccessState());
-        // كل تغيير في المخيمات يعيد حساب إحصائيات الـ Dashboard تلقائياً
         _recomputeDashboard();
       },
       onError: (e) => emit(CampsErrorState(e.toString())),
     );
   }
 
-  /// الاستدعاء اليدوي لا يزال متاحاً للتوافق مع الكود القديم
   Future<void> getCamps() async => listenToCamps();
 
   Future<void> addCamp({
@@ -227,7 +229,6 @@ class AppCubit extends Cubit<AppStates> {
         campName: name,
         type: 'camp',
       );
-      // لا حاجة لـ getCamps() — الـ stream سيُحدَّث تلقائياً
       emit(AddCampSuccessState());
     } catch (e) {
       emit(AddCampErrorState(e.toString()));
@@ -237,7 +238,6 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> updateCamp(String campId, Map<String, dynamic> data) async {
     try {
       await _db.collection('camps').doc(campId).update(data);
-      // لا حاجة لـ getCamps() — الـ stream سيُحدَّث تلقائياً
     } catch (e) {
       emit(CampsErrorState(e.toString()));
     }
@@ -246,7 +246,6 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> deleteCamp(String campId) async {
     try {
       await _db.collection('camps').doc(campId).delete();
-      // لا حاجة لـ getCamps() — الـ stream سيُحدَّث تلقائياً
     } catch (e) {
       emit(CampsErrorState(e.toString()));
     }
@@ -306,11 +305,9 @@ class AppCubit extends Cubit<AppStates> {
   /// الاستدعاء اليدوي مع دعم البحث (محلي — لا استدعاء Firestore إضافي)
   Future<void> getFamilies({String? searchQuery}) async {
     if (_familiesSubscription == null) {
-      // لو الـ stream لم يبدأ بعد، ابدأه
       listenToFamilies();
       return;
     }
-    // البحث يُطبَّق محلياً في الـ UI — لا نُعيد الاشتراك
     emit(DisplacedSuccessState());
   }
 
@@ -386,7 +383,6 @@ class AppCubit extends Cubit<AppStates> {
         type: 'register',
       );
 
-      // لا حاجة لـ getFamilies() — الـ stream سيُحدَّث تلقائياً
       emit(AddDisplacedSuccessState());
     } catch (e) {
       emit(AddDisplacedErrorState(e.toString()));
@@ -396,7 +392,6 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> updateFamily(String familyId, Map<String, dynamic> data) async {
     try {
       await _db.collection('families').doc(familyId).update(data);
-      // لا حاجة لـ getFamilies() — الـ stream سيُحدَّث تلقائياً
     } catch (e) {
       emit(DisplacedErrorState(e.toString()));
     }
@@ -409,9 +404,56 @@ class AppCubit extends Cubit<AppStates> {
       await _db.collection('camps').doc(campId).update({
         'current': FieldValue.increment(-membersCount),
       });
-      // لا حاجة لـ getFamilies() — الـ stream سيُحدَّث تلقائياً
     } catch (e) {
       emit(DisplacedErrorState(e.toString()));
+    }
+  }
+
+  Future<void> distributeAid({
+    required String familyId,
+    required String familyName,
+    required String campName,
+    required String aidType,
+    required int quantity,
+  }) async {
+    emit(AddDisplacedLoadingState());
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+
+      final existing = await _db
+          .collection('aid_distributions')
+          .where('familyId', isEqualTo: familyId)
+          .where('aidType', isEqualTo: aidType)
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        emit(AddDisplacedErrorState(
+            'تم توزيع $aidType لهذه العائلة اليوم مسبقاً'));
+        return;
+      }
+
+      await _db.collection('aid_distributions').add({
+        'familyId': familyId,
+        'familyName': familyName,
+        'campName': campName,
+        'aidType': aidType,
+        'quantity': quantity,
+        'distributedBy': currentUsername ?? 'متطوع',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      await addActivity(
+        title: 'توزيع $aidType على عائلة $familyName',
+        campName: campName,
+        type: 'aid',
+      );
+
+      emit(AddDisplacedSuccessState());
+    } catch (e) {
+      emit(AddDisplacedErrorState(e.toString()));
     }
   }
 
@@ -453,7 +495,6 @@ class AppCubit extends Cubit<AppStates> {
             'type': data['type'] ?? 'default',
           };
         }).toList();
-        // أعِد حساب الـ Dashboard عند وجود نشاطات جديدة
         _recomputeDashboard();
       },
       onError: (_) {},
@@ -470,6 +511,113 @@ class AppCubit extends Cubit<AppStates> {
         'title': title,
         'campName': campName,
         'type': type,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  Notifications — Real-time  ← جديد بالكامل
+  // ════════════════════════════════════════════════════════
+  List<Map<String, dynamic>> notifications = [];
+
+  /// يبدأ الاستماع لإشعارات المستخدم الحالي فقط
+  void listenToNotifications() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    _notificationsSubscription?.cancel();
+
+    _notificationsSubscription = _db
+        .collection('notifications')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        notifications = snapshot.docs.map((doc) {
+          final data = doc.data();
+          final createdAt = data['createdAt'];
+          String timeAgo = '';
+          if (createdAt != null) {
+            final date = (createdAt as Timestamp).toDate();
+            final diff = DateTime.now().difference(date);
+            if (diff.inMinutes < 1) {
+              timeAgo = 'الآن';
+            } else if (diff.inMinutes < 60) {
+              timeAgo = 'منذ ${diff.inMinutes} دقيقة';
+            } else if (diff.inHours < 24) {
+              timeAgo = 'منذ ${diff.inHours} ساعة';
+            } else {
+              timeAgo = 'منذ ${diff.inDays} يوم';
+            }
+          }
+          return {
+            'id': doc.id,
+            'userId': data['userId'] ?? '',
+            'role': data['role'] ?? '',
+            'familyId': data['familyId'] ?? '',
+            'campName': data['campName'] ?? '',
+            'title': data['title'] ?? '',
+            'message': data['message'] ?? '',
+            'type': data['type'] ?? 'default',
+            'isRead': data['isRead'] ?? false,
+            'createdAt': data['createdAt'],
+            'timeAgo': timeAgo,
+          };
+        }).toList();
+        emit(NotificationsSuccessState());
+      },
+      onError: (_) {},
+    );
+  }
+
+  /// عدد الإشعارات غير المقروءة — مفيد لشارة الـ badge
+  int get unreadNotificationsCount =>
+      notifications.where((n) => n['isRead'] == false).length;
+
+  /// تعليم إشعار واحد كمقروء
+  Future<void> markNotificationAsRead(String notifId) async {
+    try {
+      await _db
+          .collection('notifications')
+          .doc(notifId)
+          .update({'isRead': true});
+    } catch (_) {}
+  }
+
+  /// تعليم جميع الإشعارات كمقروءة دفعةً واحدة
+  Future<void> markAllNotificationsAsRead() async {
+    try {
+      final unread = notifications.where((n) => n['isRead'] == false).toList();
+      final batch = _db.batch();
+      for (final n in unread) {
+        final ref = _db.collection('notifications').doc(n['id'] as String);
+        batch.update(ref, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  /// إرسال إشعار لمستخدم معين
+  Future<void> sendNotification({
+    required String userId,
+    required String role,
+    required String title,
+    required String message,
+    required String type,
+    String? campName,
+    String? familyId,
+  }) async {
+    try {
+      await _db.collection('notifications').add({
+        'userId': userId,
+        'role': role,
+        'title': title,
+        'message': message,
+        'type': type,
+        'campName': campName ?? '',
+        'familyId': familyId ?? '',
+        'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (_) {}
@@ -508,18 +656,14 @@ class AppCubit extends Cubit<AppStates> {
   // ════════════════════════════════════════════════════════
   Map<String, dynamic> dashboardStats = {};
 
-  /// يُستدعى تلقائياً كلما تغيّر camps أو families أو activities أو aid
   void _recomputeDashboard() {
-    // ── المخيمات ──────────────────────────────────────────
     final totalCamps = camps.length;
     final activeCamps = camps.where((c) => c['status'] == 'متاح').length;
 
-    // ── العائلات والنازحين ────────────────────────────────
     final totalFamilies = families.length;
     final totalDisplaced =
         families.fold<int>(0, (s, f) => s + (f['membersCount'] as int? ?? 1));
 
-    // ── نسبة الإشغال ──────────────────────────────────────
     final totalCapacity =
         camps.fold<int>(0, (s, c) => s + (c['capacity'] as int? ?? 0));
     final totalCurrent =
@@ -542,11 +686,9 @@ class AppCubit extends Cubit<AppStates> {
     emit(DashboardSuccessState());
   }
 
-  /// الاستدعاء اليدوي للتوافق مع الكود القديم
   Future<void> getDashboardStats() async {
     emit(DashboardLoadingState());
 
-    // تحميل اسم المستخدم إن لم يكن محمّلاً
     if (_auth.currentUser != null && currentUsername == null) {
       try {
         final userDoc =
@@ -555,10 +697,8 @@ class AppCubit extends Cubit<AppStates> {
       } catch (_) {}
     }
 
-    // إذا كانت الـ streams لم تبدأ بعد، ابدأها
     if (_campsSubscription == null) startAllListeners();
 
-    // إذا كانت البيانات موجودة أصلاً، احسب مباشرة
     if (camps.isNotEmpty || families.isNotEmpty) {
       _recomputeDashboard();
     }
