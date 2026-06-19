@@ -1,9 +1,11 @@
+import 'package:displacement_camp_management_system/views/screens/shared/aid_distribution_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../utils/styles/colors.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
+import '../shared/add_familiy_screen.dart';
 import 'volunteer_register_family_screen.dart';
 import 'volunteer_aid_management_screen.dart';
 import 'volunteer_inquiry_screen.dart';
@@ -158,7 +160,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const VolunteerRegisterFamilyScreen(),
+                        builder: (_) => const AddFamilyScreen(),
                       ),
                     ),
                   ),
@@ -169,7 +171,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const VolunteerAidManagementScreen(),
+                        builder: (_) => const AidDistributionScreen(),
                       ),
                     ),
                   ),

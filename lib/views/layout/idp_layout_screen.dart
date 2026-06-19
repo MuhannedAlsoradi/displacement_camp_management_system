@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../screens/idp/idp_aidrequest_screen.dart';
 import '../screens/idp/idp_dashboard_screen.dart';
 import '../screens/idp/idp_profile_screen.dart';
-import '../screens/shared_notification_screen.dart';
+import '../screens/shared/shared_notification_screen.dart';
 
 class IdpHomeLayout extends StatefulWidget {
   const IdpHomeLayout({super.key});

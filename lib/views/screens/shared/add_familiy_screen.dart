@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
 import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
+import '../../../utils/styles/colors.dart';
 
 class AddFamilyScreen extends StatefulWidget {
   const AddFamilyScreen({super.key});
@@ -17,9 +18,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   final TextEditingController _nationalIdController = TextEditingController();
   final TextEditingController _representativeNameController =
       TextEditingController();
-  final TextEditingController _tentIdController = TextEditingController();
 
-  // Origin city — قائمة مدن قطاع غزة
   String? _selectedOriginCity;
   final List<String> _palestinianCities = [
     'غزة',
@@ -39,16 +38,13 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
     'عبسان الصغيرة',
     'بني سهيلا',
     'القرارة',
-    'الفاهوم',
     'الزهراء',
     'الشجاعية',
     'التفاح',
     'الدرج',
     'الرمال',
-    'البلد',
     'الصبرة',
     'الشيخ رضوان',
-    'بيت حانون (حي)',
     'حي الأمل',
     'حي السلام',
     'حي النصر',
@@ -56,15 +52,11 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
 
   int _membersCount = 1;
 
-  // Camp selection — مصدره AppCubit.camps
   String? _selectedCampId;
   String? _selectedCampName;
+  String? _selectedTentDocId;
+  String? _selectedTentLabel;
 
-  // Tent selection — تُجلب من Firestore بعد اختيار المخيم
-  String? _selectedTentDocId; // document ID في Firestore
-  String? _selectedTentLabel; // للعرض: "خيمة 5"
-
-  // Needs multi-select chips
   final List<String> _allNeeds = [
     'غذاء',
     'دواء',
@@ -84,11 +76,8 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   @override
   void initState() {
     super.initState();
-    // جلب المخيمات عبر الـ Cubit إذا لم تكن محملة بعد
     final cubit = AppCubit.get(context);
-    if (cubit.camps.isEmpty) {
-      cubit.getCamps();
-    }
+    if (cubit.camps.isEmpty) cubit.getCamps();
   }
 
   @override
@@ -99,19 +88,11 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────────────
-  //  Submit
-  // ─────────────────────────────────────────────────────────────
   void _submit(BuildContext context) {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCampId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('الرجاء اختيار المخيم'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnack('الرجاء اختيار المخيم', AppColors.statusCritical);
       return;
     }
 
@@ -129,30 +110,27 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  //  Build
-  // ─────────────────────────────────────────────────────────────
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {
         if (state is AddDisplacedSuccessState) {
-          // تحديث قائمة العائلات في الصفحة السابقة
           AppCubit.get(context).getFamilies();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ تم تسجيل العائلة بنجاح'),
-              backgroundColor: Color(0xFF2E7D32),
-            ),
-          );
+          _showSnack('تم تسجيل العائلة بنجاح', AppColors.statusStable);
           Navigator.pop(context);
         } else if (state is AddDisplacedErrorState) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ ${state.error}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          _showSnack(state.error, AppColors.statusCritical);
         }
       },
       builder: (context, state) {
@@ -162,23 +140,26 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFFF5F7FA),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0.5,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A1A2E)),
-            ),
-            title: const Text(
-              'تسجيل عائلة',
-              style: TextStyle(
-                color: Color(0xFF1A1A2E),
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            centerTitle: true,
-          ),
+          appBar: cubit.currentIndex != 1
+              ? AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0.5,
+                  leading: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Color(0xFF1A1A2E), size: 20),
+                  ),
+                  title: const Text(
+                    'تسجيل عائلة نازحة',
+                    style: TextStyle(
+                      color: Color(0xFF1A1A2E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  centerTitle: true,
+                )
+              : null,
           body: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Padding(
@@ -188,21 +169,21 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── معلومات العائلة ──────────────────────────
+                    // ── معلومات العائلة ──────────────────────
                     _sectionHeader('معلومات العائلة', Icons.group),
                     const SizedBox(height: 12),
                     _buildTextField(
                       controller: _familyNameController,
                       label: 'اسم العائلة',
                       hint: 'مثال: عائلة حمدان',
-                      icon: Icons.family_restroom,
+                      icon: Icons.family_restroom_rounded,
                       isRequired: true,
                     ),
                     _buildTextField(
                       controller: _representativeNameController,
                       label: 'اسم ممثل العائلة',
                       hint: 'مثال: نضال فارس حمدان',
-                      icon: Icons.person,
+                      icon: Icons.person_rounded,
                       isRequired: true,
                     ),
                     _buildMembersCounter(),
@@ -210,27 +191,29 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                       controller: _nationalIdController,
                       label: 'رقم الهوية الوطنية',
                       hint: 'مثال: 409378189',
-                      icon: Icons.badge,
+                      icon: Icons.badge_rounded,
                       isRequired: true,
                       maxLength: 9,
+                      keyboardType: TextInputType.number,
                     ),
                     _buildCityPicker(),
                     const SizedBox(height: 20),
 
-                    // ── معلومات المخيم ───────────────────────────
-                    _sectionHeader('معلومات المخيم', Icons.home_work),
+                    // ── معلومات المخيم ───────────────────────
+                    _sectionHeader('معلومات المخيم', Icons.home_work_rounded),
                     const SizedBox(height: 12),
                     _buildCampPicker(cubit: cubit, campsLoading: campsLoading),
                     _buildTentPicker(cubit: cubit, state: state),
                     const SizedBox(height: 20),
 
-                    // ── الاحتياجات ───────────────────────────────
-                    _sectionHeader('الاحتياجات', Icons.volunteer_activism),
+                    // ── الاحتياجات ───────────────────────────
+                    _sectionHeader(
+                        'الاحتياجات', Icons.volunteer_activism_rounded),
                     const SizedBox(height: 12),
                     _buildNeedsSelector(),
                     const SizedBox(height: 32),
 
-                    // ── زر الحفظ ─────────────────────────────────
+                    // ── زر الحفظ ─────────────────────────────
                     _buildSubmitButton(
                         isSubmitting: isSubmitting, context: context),
                     const SizedBox(height: 24),
@@ -245,7 +228,36 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  //  City Picker — قائمة مدن قطاع غزة
+  //  Section Header
+  // ─────────────────────────────────────────────────────────────
+  Widget _sectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A1A2E),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Divider(color: Colors.grey.shade200, thickness: 1)),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  //  City Picker
   // ─────────────────────────────────────────────────────────────
   Widget _buildCityPicker() {
     return Padding(
@@ -273,8 +285,8 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_city,
-                      color: Color(0xFF1565C0), size: 20),
+                  Icon(Icons.location_city_rounded,
+                      color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -290,11 +302,11 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                   if (_selectedOriginCity != null)
                     GestureDetector(
                       onTap: () => setState(() => _selectedOriginCity = null),
-                      child: Icon(Icons.close,
+                      child: Icon(Icons.close_rounded,
                           color: Colors.grey.shade400, size: 18),
                     )
                   else
-                    Icon(Icons.keyboard_arrow_down,
+                    Icon(Icons.keyboard_arrow_down_rounded,
                         color: Colors.grey.shade400, size: 20),
                 ],
               ),
@@ -338,13 +350,11 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                 child: Text(
                   'اختر المدينة',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
-                  ),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E)),
                 ),
               ),
-              // Search
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -355,8 +365,8 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                     hintText: 'ابحث عن مدينة...',
                     hintStyle:
                         TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                    prefixIcon: const Icon(Icons.search,
-                        color: Color(0xFF1565C0), size: 20),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        color: AppColors.primary, size: 20),
                     filled: true,
                     fillColor: const Color(0xFFF5F7FA),
                     contentPadding: const EdgeInsets.symmetric(
@@ -379,9 +389,9 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               const Divider(height: 1),
               Expanded(
                 child: filtered.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text('لا توجد نتائج',
-                            style: TextStyle(color: Colors.grey)),
+                            style: TextStyle(color: Colors.grey.shade400)),
                       )
                     : ListView.separated(
                         itemCount: filtered.length,
@@ -400,34 +410,30 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                               height: 34,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? const Color(0xFF1565C0)
-                                    : const Color(0xFF1565C0).withOpacity(0.08),
+                                    ? AppColors.primary
+                                    : AppColors.primary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(
-                                Icons.place,
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF1565C0),
-                                size: 16,
-                              ),
+                              child: Icon(Icons.place_rounded,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.primary,
+                                  size: 16),
                             ),
-                            title: Text(
-                              city,
-                              textDirection: TextDirection.rtl,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color: isSelected
-                                    ? const Color(0xFF1565C0)
-                                    : const Color(0xFF1A1A2E),
-                              ),
-                            ),
+                            title: Text(city,
+                                textDirection: TextDirection.rtl,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : const Color(0xFF1A1A2E),
+                                )),
                             trailing: isSelected
-                                ? const Icon(Icons.check_circle,
-                                    color: Color(0xFF1565C0), size: 20)
+                                ? Icon(Icons.check_circle_rounded,
+                                    color: AppColors.primary, size: 20)
                                 : null,
                           );
                         },
@@ -442,7 +448,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  //  Camp Picker — يقرأ من cubit.camps
+  //  Camp Picker
   // ─────────────────────────────────────────────────────────────
   Widget _buildCampPicker({
     required AppCubit cubit,
@@ -453,19 +459,14 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text(
-                'اسم المخيم',
+          Row(children: [
+            const Text('اسم المخيم',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF424242),
-                ),
-              ),
-              Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
-            ],
-          ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF424242))),
+            const Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
+          ]),
           const SizedBox(height: 6),
           GestureDetector(
             onTap:
@@ -479,25 +480,24 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on,
-                      color: Color(0xFF1565C0), size: 20),
+                  Icon(Icons.location_on_rounded,
+                      color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: campsLoading
-                        ? const Row(
+                        ? Row(
                             children: [
                               SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF1565C0),
-                                ),
+                                    strokeWidth: 2, color: AppColors.primary),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text('جاري تحميل المخيمات...',
                                   style: TextStyle(
-                                      color: Colors.grey, fontSize: 13)),
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13)),
                             ],
                           )
                         : Text(
@@ -510,7 +510,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                             ),
                           ),
                   ),
-                  Icon(Icons.keyboard_arrow_down,
+                  Icon(Icons.keyboard_arrow_down_rounded,
                       color: Colors.grey.shade400, size: 20),
                 ],
               ),
@@ -542,20 +542,16 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                'اختر المخيم',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
+              child: Text('اختر المخيم',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E))),
             ),
             const Divider(height: 1),
             Flexible(
@@ -563,9 +559,8 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                   ? const Padding(
                       padding: EdgeInsets.all(32),
                       child: Center(
-                        child: Text('لا توجد مخيمات متاحة',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
+                          child: Text('لا توجد مخيمات متاحة',
+                              style: TextStyle(color: Colors.grey))),
                     )
                   : ListView.separated(
                       shrinkWrap: true,
@@ -586,11 +581,9 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                                   setState(() {
                                     _selectedCampId = camp['id'];
                                     _selectedCampName = camp['name'];
-                                    // إعادة ضبط الخيمة عند تغيير المخيم
                                     _selectedTentDocId = null;
                                     _selectedTentLabel = null;
                                   });
-                                  // جلب الخيام الفارغة للمخيم المختار
                                   AppCubit.get(context)
                                       .getAvailableTents(camp['id']);
                                   Navigator.pop(context);
@@ -600,50 +593,45 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                             height: 36,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF1565C0)
+                                  ? AppColors.primary
                                   : isFull
                                       ? Colors.grey.shade200
-                                      : const Color(0xFF1565C0)
-                                          .withOpacity(0.1),
+                                      : AppColors.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(
-                              Icons.home_work,
-                              color: isSelected
-                                  ? Colors.white
-                                  : isFull
-                                      ? Colors.grey
-                                      : const Color(0xFF1565C0),
-                              size: 18,
-                            ),
+                            child: Icon(Icons.home_work_rounded,
+                                color: isSelected
+                                    ? Colors.white
+                                    : isFull
+                                        ? Colors.grey
+                                        : AppColors.primary,
+                                size: 18),
                           ),
-                          title: Text(
-                            camp['name'] ?? '',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isFull
-                                  ? Colors.grey
-                                  : isSelected
-                                      ? const Color(0xFF1565C0)
-                                      : const Color(0xFF1A1A2E),
-                            ),
-                          ),
+                          title: Text(camp['name'] ?? '',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isFull
+                                    ? Colors.grey
+                                    : isSelected
+                                        ? AppColors.primary
+                                        : const Color(0xFF1A1A2E),
+                              )),
                           subtitle: capacity > 0
                               ? Text(
                                   '$current / $capacity فرد${isFull ? ' — ممتلئ' : ''}',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    color: isFull ? Colors.red : Colors.grey,
-                                  ),
-                                )
+                                      fontSize: 11,
+                                      color: isFull
+                                          ? AppColors.statusCritical
+                                          : Colors.grey))
                               : null,
                           trailing: isSelected
-                              ? const Icon(Icons.check_circle,
-                                  color: Color(0xFF1565C0), size: 20)
+                              ? Icon(Icons.check_circle_rounded,
+                                  color: AppColors.primary, size: 20)
                               : null,
                         );
                       },
@@ -684,17 +672,15 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF1565C0) : Colors.white,
+                  color: selected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: selected
-                        ? const Color(0xFF1565C0)
-                        : Colors.grey.shade300,
+                    color: selected ? AppColors.primary : Colors.grey.shade300,
                   ),
                   boxShadow: selected
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF1565C0).withOpacity(0.25),
+                            color: AppColors.primary.withOpacity(0.25),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           )
@@ -705,7 +691,8 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (selected) ...[
-                      const Icon(Icons.check, color: Colors.white, size: 14),
+                      const Icon(Icons.check_rounded,
+                          color: Colors.white, size: 14),
                       const SizedBox(width: 4),
                     ],
                     Text(
@@ -728,9 +715,9 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
           const SizedBox(height: 8),
           Text(
             'تم اختيار ${_selectedNeeds.length} احتياج',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF1565C0),
+              color: AppColors.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -742,51 +729,20 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   // ─────────────────────────────────────────────────────────────
   //  Shared Widgets
   // ─────────────────────────────────────────────────────────────
-  Widget _sectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1565C0).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: const Color(0xFF1565C0), size: 18),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A2E),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
-      ],
-    );
-  }
-
   Widget _buildMembersCounter() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text(
-                'عدد أفراد العائلة',
+          Row(children: const [
+            Text('عدد أفراد العائلة',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF424242),
-                ),
-              ),
-              Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
-            ],
-          ),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF424242))),
+            Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
+          ]),
           const SizedBox(height: 6),
           Container(
             decoration: BoxDecoration(
@@ -797,10 +753,10 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                const Icon(Icons.people, color: Color(0xFF1565C0), size: 20),
+                Icon(Icons.people_rounded, color: AppColors.primary, size: 20),
                 const SizedBox(width: 12),
                 _counterButton(
-                  icon: Icons.remove,
+                  icon: Icons.remove_rounded,
                   onTap: () {
                     if (_membersCount > 1) setState(() => _membersCount--);
                   },
@@ -818,7 +774,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                   ),
                 ),
                 _counterButton(
-                  icon: Icons.add,
+                  icon: Icons.add_rounded,
                   onTap: () => setState(() => _membersCount++),
                 ),
               ],
@@ -836,7 +792,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFF1565C0),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: Colors.white, size: 20),
@@ -844,14 +800,15 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
     );
   }
 
-  Widget _buildTextField(
-      {required TextEditingController controller,
-      required String label,
-      required String hint,
-      required IconData icon,
-      TextInputType keyboardType = TextInputType.text,
-      bool isRequired = false,
-      int? maxLength}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool isRequired = false,
+    int? maxLength,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -879,7 +836,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               hintText: hint,
               counterText: '',
               hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-              prefixIcon: Icon(icon, color: const Color(0xFF1565C0), size: 20),
+              prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
               filled: true,
               fillColor: Colors.white,
               contentPadding:
@@ -893,10 +850,14 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: Color(0xFF1565C0), width: 1.5)),
+                      const BorderSide(color: AppColors.primary, width: 1.5)),
               errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.red)),
+                  borderSide: BorderSide(color: AppColors.statusCritical)),
+              focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      BorderSide(color: AppColors.statusCritical, width: 1.5)),
             ),
             validator: isRequired
                 ? (v) => (v == null || v.isEmpty) ? 'هذا الحقل مطلوب' : null
@@ -917,34 +878,28 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
       child: ElevatedButton(
         onPressed: isSubmitting ? null : () => _submit(context),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1565C0),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFF1565C0).withOpacity(0.6),
+          disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 2,
+          elevation: 0,
         ),
         child: isSubmitting
             ? const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
+                    color: Colors.white, strokeWidth: 2.5),
               )
             : const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.save_outlined, size: 20),
                   SizedBox(width: 8),
-                  Text(
-                    'حفظ بيانات العائلة',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('حفظ بيانات العائلة',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
       ),
@@ -952,7 +907,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  //  Tent Picker — مخصص لعرض واختيار الخيام بناءً على الـ cubit
+  //  Tent Picker
   // ─────────────────────────────────────────────────────────────
   Widget _buildTentPicker({
     required AppCubit cubit,
@@ -968,10 +923,9 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
           const Text(
             'تخصيص خيمة عائلية',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF424242),
-            ),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF424242)),
           ),
           const SizedBox(height: 6),
           GestureDetector(
@@ -987,17 +941,14 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.gite_outlined,
-                    color:
-                        isCampSelected ? const Color(0xFF1565C0) : Colors.grey,
-                    size: 20,
-                  ),
+                  Icon(Icons.gite_outlined,
+                      color: isCampSelected ? AppColors.primary : Colors.grey,
+                      size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       !isCampSelected
-                          ? 'الرجاء اختيار المخيم أولاً لعرض الخيام المتاحة'
+                          ? 'اختر المخيم أولاً لعرض الخيام المتاحة'
                           : (_selectedTentLabel ??
                               'اختر خيمة للعائلة (اختياري)'),
                       style: TextStyle(
@@ -1010,17 +961,15 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                   ),
                   if (_selectedTentLabel != null)
                     GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedTentDocId = null;
-                          _selectedTentLabel = null;
-                        });
-                      },
-                      child: Icon(Icons.close,
+                      onTap: () => setState(() {
+                        _selectedTentDocId = null;
+                        _selectedTentLabel = null;
+                      }),
+                      child: Icon(Icons.close_rounded,
                           color: Colors.grey.shade400, size: 18),
                     )
                   else
-                    Icon(Icons.keyboard_arrow_down,
+                    Icon(Icons.keyboard_arrow_down_rounded,
                         color: Colors.grey.shade400, size: 20),
                 ],
               ),
@@ -1052,31 +1001,35 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                'الخيام الشاغرة والمتاحة حالياً',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
+              child: Text('الخيام الشاغرة المتاحة',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A2E))),
             ),
             const Divider(height: 1),
             Flexible(
               child: tents.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(32),
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
                       child: Center(
-                        child: Text(
-                          'لا توجد خيام متاحة في هذا المخيم حالياً، سيتم الحفظ بدون خيمة.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        child: Column(
+                          children: [
+                            Icon(Icons.gite_outlined,
+                                color: Colors.grey.shade300, size: 40),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'لا توجد خيام متاحة حالياً\nسيتم الحفظ بدون تخصيص خيمة',
+                              textAlign: TextAlign.center,
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          ],
                         ),
                       ),
                     )
@@ -1088,10 +1041,9 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                       itemBuilder: (_, i) {
                         final tent = tents[i];
                         final isSelected = _selectedTentDocId == tent['id'];
-                        // قراءة حقل الاسم أو الرقم الخاص بالخيمة من قاعدة البيانات
                         final String tentName = tent['name'] ??
                             tent['tentNumber'] ??
-                            'خيمة غير معنونة';
+                            'خيمة ${i + 1}';
 
                         return ListTile(
                           onTap: () {
@@ -1106,34 +1058,30 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                             height: 36,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF1565C0)
-                                  : const Color(0xFF1565C0).withOpacity(0.1),
+                                  ? AppColors.primary
+                                  : AppColors.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(
-                              Icons.gite,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF1565C0),
-                              size: 18,
-                            ),
+                            child: Icon(Icons.gite_rounded,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.primary,
+                                size: 18),
                           ),
-                          title: Text(
-                            tentName,
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? const Color(0xFF1565C0)
-                                  : const Color(0xFF1A1A2E),
-                            ),
-                          ),
+                          title: Text(tentName,
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : const Color(0xFF1A1A2E),
+                              )),
                           trailing: isSelected
-                              ? const Icon(Icons.check_circle,
-                                  color: Color(0xFF1565C0), size: 20)
+                              ? Icon(Icons.check_circle_rounded,
+                                  color: AppColors.primary, size: 20)
                               : null,
                         );
                       },

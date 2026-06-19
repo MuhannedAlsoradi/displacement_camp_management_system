@@ -16,8 +16,6 @@ class DisplacedManagementScreen extends StatefulWidget {
 class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
   String _activeFilter = 'الكل';
   String _searchQuery = '';
-
-  // ── قائمة المخيمات للفلتر "حسب المخيم" ────────────────────
   String? _selectedCamp;
 
   @override
@@ -26,13 +24,9 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
     AppCubit.get(context).getFamilies();
   }
 
-  // ══════════════════════════════════════════════════════════
-  //  منطق الفلترة المحلي (بدون استدعاءات Firestore إضافية)
-  // ══════════════════════════════════════════════════════════
   List<Map<String, dynamic>> _applyFilters(List<Map<String, dynamic>> all) {
     List<Map<String, dynamic>> result = List.from(all);
 
-    // 1. فلتر البحث النصي
     if (_searchQuery.isNotEmpty) {
       result = result.where((f) {
         return (f['representativeName'] ?? '')
@@ -43,14 +37,12 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
       }).toList();
     }
 
-    // 2. فلتر المخيم
     if (_activeFilter == 'حسب المخيم' && _selectedCamp != null) {
       result = result
           .where((f) => f['campName']?.toString() == _selectedCamp)
           .toList();
     }
 
-    // 3. فلتر الحجم (تنازلي حسب عدد الأفراد)
     if (_activeFilter == 'حسب الحجم') {
       result.sort((a, b) => (b['membersCount'] as int? ?? 0)
           .compareTo(a['membersCount'] as int? ?? 0));
@@ -59,7 +51,6 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
     return result;
   }
 
-  // جمع أسماء المخيمات الموجودة في القائمة
   List<String> _getCampNames(List<Map<String, dynamic>> families) {
     final names = families
         .map((f) => f['campName']?.toString() ?? '')
@@ -70,14 +61,24 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
     return names;
   }
 
-  // ══════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AppCubit, AppStates>(
+    return BlocConsumer<AppCubit, AppStates>(
+      listenWhen: (p, c) =>
+          c is DeleteFamilySuccessState || c is DeleteFamilyErrorState,
+      listener: (context, state) {
+        if (state is DeleteFamilySuccessState) {
+          _showSnack('تم حذف العائلة بنجاح', AppColors.statusStable);
+          AppCubit.get(context).getFamilies();
+        } else if (state is DeleteFamilyErrorState) {
+          _showSnack('فشل الحذف: ${state.error}', AppColors.statusCritical);
+        }
+      },
       buildWhen: (p, c) =>
           c is DisplacedSuccessState ||
           c is DisplacedLoadingState ||
-          c is DisplacedErrorState,
+          c is DisplacedErrorState ||
+          c is DeleteFamilySuccessState,
       builder: (context, state) {
         final cubit = AppCubit.get(context);
         final allFamilies = cubit.families;
@@ -91,14 +92,14 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── شريط البحث ───────────────────────────────
+              // ── شريط البحث ────────────────────────────────
               _SearchBar(
                 onChanged: (v) => setState(() => _searchQuery = v),
               ),
 
               const SizedBox(height: 12),
 
-              // ── الفلاتر ──────────────────────────────────
+              // ── الفلاتر ───────────────────────────────────
               _FilterRow(
                 active: _activeFilter,
                 campNames: campNames,
@@ -112,7 +113,7 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
 
               const SizedBox(height: 10),
 
-              // ── عداد النتائج ─────────────────────────────
+              // ── عداد النتائج ──────────────────────────────
               _ResultsCounter(
                 familyCount: filtered.length,
                 totalPersons: totalPersons,
@@ -120,9 +121,9 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
 
               const SizedBox(height: 8),
 
-              // ── القائمة ──────────────────────────────────
+              // ── القائمة ───────────────────────────────────
               Expanded(
-                child: _buildBody(state, filtered),
+                child: _buildBody(state, filtered, cubit),
               ),
             ],
           ),
@@ -131,11 +132,11 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
     );
   }
 
-  Widget _buildBody(AppStates state, List<Map<String, dynamic>> filtered) {
+  Widget _buildBody(
+      AppStates state, List<Map<String, dynamic>> filtered, AppCubit cubit) {
     if (state is DisplacedLoadingState) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+          child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     if (state is DisplacedErrorState) {
@@ -146,26 +147,202 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
     }
 
     if (filtered.isEmpty) {
-      return const _EmptyView();
+      return _EmptyView(hasQuery: _searchQuery.isNotEmpty);
     }
 
     return ListView.builder(
       itemCount: filtered.length,
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 16),
+      // padding: const EdgeInsets.only(bottom: 0),
       itemBuilder: (context, index) {
         final f = filtered[index];
         return _FamilyCard(
-          nationalId: f['nationalId']?.toString() ?? '',
-          familyName: f['familyName']?.toString() ?? '',
-          representativeName: f['representativeName']?.toString() ?? '',
-          campName: f['campName']?.toString() ?? 'غير محدد',
-          originCity: f['originCity']?.toString() ?? '',
-          membersCount: f['membersCount'] as int? ?? 1,
-          needs: f['needs']?.toString() ?? '',
-          status: f['status']?.toString() ?? '',
+          familyData: f,
+          onDelete: () => _confirmDelete(f, cubit),
+          onDetails: () => _showFamilyDetails(f),
         );
       },
+    );
+  }
+
+  void _confirmDelete(Map<String, dynamic> family, AppCubit cubit) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: AppColors.statusCritical, size: 22),
+            const SizedBox(width: 8),
+            const Text('تأكيد الحذف',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'هل تريد حذف عائلة "${family['familyName']}"؟\nلا يمكن التراجع عن هذه العملية.',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.statusCritical,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              cubit.deleteFamily(
+                family['id'],
+                family['campId'] ?? '',
+                family['membersCount'] as int? ?? 0,
+              );
+            },
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFamilyDetails(Map<String, dynamic> family) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.family_restroom_rounded,
+                            color: AppColors.primary, size: 26),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              family['familyName'] ?? '',
+                              style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary),
+                            ),
+                            Text(
+                              family['representativeName'] ?? '',
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(color: AppColors.border, height: 1),
+                  const SizedBox(height: 16),
+                  _detailRow(Icons.badge_outlined, 'رقم الهوية',
+                      family['nationalId']?.toString() ?? '-'),
+                  _detailRow(Icons.people_rounded, 'عدد الأفراد',
+                      '${family['membersCount'] ?? 1} أفراد'),
+                  _detailRow(Icons.location_city_rounded, 'المخيم',
+                      family['campName']?.toString() ?? 'غير محدد'),
+                  if ((family['originCity'] ?? '').toString().isNotEmpty)
+                    _detailRow(Icons.home_rounded, 'مدينة الأصل',
+                        family['originCity'].toString()),
+                  if ((family['needs'] ?? '').toString().isNotEmpty)
+                    _detailRow(Icons.volunteer_activism_rounded, 'الاحتياجات',
+                        family['needs'].toString()),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style:
+                      const TextStyle(fontSize: 10, color: AppColors.textHint)),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
     );
   }
 }
@@ -189,7 +366,8 @@ class _SearchBar extends StatelessWidget {
         onChanged: onChanged,
         textDirection: TextDirection.rtl,
         decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search_rounded, color: AppColors.textHint),
+          prefixIcon:
+              Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
           hintText: 'ابحث بالاسم، اسم العائلة، أو رقم الهوية',
           hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
           border: InputBorder.none,
@@ -223,7 +401,6 @@ class _FilterRow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── الثلاثة زراراير ──────────────────────────────
         Row(
           children: [
             _chip('الكل', Icons.grid_view_rounded),
@@ -233,8 +410,6 @@ class _FilterRow extends StatelessWidget {
             _chip('حسب الحجم', Icons.sort_rounded),
           ],
         ),
-
-        // ── قائمة المخيمات (تظهر فقط عند اختيار "حسب المخيم") ──
         if (active == 'حسب المخيم' && campNames.isNotEmpty) ...[
           const SizedBox(height: 8),
           SizedBox(
@@ -299,11 +474,9 @@ class _FilterRow extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 13,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-            ),
+            Icon(icon,
+                size: 13,
+                color: isSelected ? Colors.white : AppColors.textSecondary),
             const SizedBox(width: 5),
             Text(
               label,
@@ -376,35 +549,35 @@ class _ResultsCounter extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  بطاقة عائلة
+//  بطاقة عائلة — مع زر الخيارات (تفاصيل + حذف)
 // ══════════════════════════════════════════════════════════════
 class _FamilyCard extends StatelessWidget {
-  final String nationalId;
-  final String familyName;
-  final String representativeName;
-  final String campName;
-  final String originCity;
-  final int membersCount;
-  final String needs;
-  final String status;
+  final Map<String, dynamic> familyData;
+  final VoidCallback onDelete;
+  final VoidCallback onDetails;
 
   const _FamilyCard({
-    required this.nationalId,
-    required this.familyName,
-    required this.representativeName,
-    required this.campName,
-    required this.originCity,
-    required this.membersCount,
-    required this.needs,
-    required this.status,
+    required this.familyData,
+    required this.onDelete,
+    required this.onDetails,
   });
+
+  String get nationalId => familyData['nationalId']?.toString() ?? '';
+  String get familyName => familyData['familyName']?.toString() ?? '';
+  String get representativeName =>
+      familyData['representativeName']?.toString() ?? '';
+  String get campName => familyData['campName']?.toString() ?? 'غير محدد';
+  String get originCity => familyData['originCity']?.toString() ?? '';
+  int get membersCount => familyData['membersCount'] as int? ?? 1;
+  String get needs => familyData['needs']?.toString() ?? '';
+  String get status => familyData['status']?.toString() ?? '';
 
   Color get _statusColor {
     switch (status) {
       case 'تم التسجيل':
-        return AppColors.success;
+        return AppColors.statusStable;
       case 'قيد المراجعة':
-        return Colors.orange;
+        return AppColors.statusWarning;
       default:
         return AppColors.textHint;
     }
@@ -424,56 +597,48 @@ class _FamilyCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── أيقونة ────────────────────────────────────
+            // ── أيقونة ──────────────────────────────────────
             Container(
-              width: 44,
-              height: 44,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(13),
               ),
-              child: const Icon(
-                Icons.family_restroom_rounded,
-                color: AppColors.primary,
-                size: 22,
-              ),
+              child: const Icon(Icons.family_restroom_rounded,
+                  color: AppColors.primary, size: 22),
             ),
 
             const SizedBox(width: 12),
 
-            // ── المعلومات الرئيسية ─────────────────────────
+            // ── المعلومات ────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // اسم العائلة + الحالة
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        familyName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.5,
-                          color: AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          familyName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                       _StatusBadge(label: status, color: _statusColor),
                     ],
                   ),
-
-                  const SizedBox(height: 4),
-
-                  // الممثل
+                  const SizedBox(height: 3),
                   Text(
                     'ممثل العائلة: $representativeName',
                     style: const TextStyle(
                         fontSize: 11.5, color: AppColors.textSecondary),
                   ),
-
                   const SizedBox(height: 6),
-
-                  // الصف السفلي: مخيم | مدينة | أفراد
                   Wrap(
                     spacing: 10,
                     runSpacing: 4,
@@ -487,8 +652,6 @@ class _FamilyCard extends StatelessWidget {
                           label: '$membersCount أفراد'),
                     ],
                   ),
-
-                  // الاحتياجات (إن وُجدت)
                   if (needs.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     Row(
@@ -512,24 +675,39 @@ class _FamilyCard extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
 
-            // ── رقم الهوية (يمين) ─────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceSecondary,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border.withOpacity(0.5)),
-              ),
-              child: Text(
-                nationalId,
-                style: const TextStyle(
-                    fontSize: 10,
-                    fontFamily: 'monospace',
-                    color: AppColors.textSecondary,
-                    letterSpacing: 0.5),
-              ),
+            // ── قائمة الخيارات ───────────────────────────────
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert,
+                  color: AppColors.textHint, size: 20),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'details') onDetails();
+                if (value == 'delete') onDelete();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'details',
+                  child: Row(children: [
+                    Icon(Icons.info_outline,
+                        size: 18, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text('عرض التفاصيل'),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(children: [
+                    Icon(Icons.delete_outline,
+                        size: 18, color: AppColors.statusCritical),
+                    const SizedBox(width: 8),
+                    Text('حذف العائلة',
+                        style: TextStyle(color: AppColors.statusCritical)),
+                  ]),
+                ),
+              ],
             ),
           ],
         ),
@@ -538,9 +716,9 @@ class _FamilyCard extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  Widgets مساعدة صغيرة
-// ══════════════════════════════════════════════════════════════
+// ──────────────────────────────────────────────────────────────
+//  Widgets مساعدة
+// ──────────────────────────────────────────────────────────────
 class _StatusBadge extends StatelessWidget {
   final String label;
   final Color color;
@@ -548,6 +726,7 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (label.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -600,11 +779,11 @@ class _ErrorView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.08),
+              color: AppColors.statusCritical.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
             ),
-            child:
-                const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 40),
+            child: Icon(Icons.wifi_off_rounded,
+                color: AppColors.statusCritical, size: 40),
           ),
           const SizedBox(height: 12),
           const Text('تعذّر تحميل البيانات',
@@ -636,7 +815,8 @@ class _ErrorView extends StatelessWidget {
 }
 
 class _EmptyView extends StatelessWidget {
-  const _EmptyView();
+  final bool hasQuery;
+  const _EmptyView({this.hasQuery = false});
 
   @override
   Widget build(BuildContext context) {
@@ -660,8 +840,13 @@ class _EmptyView extends StatelessWidget {
                   fontSize: 15,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 4),
-          const Text('جرّب تغيير الفلتر أو كلمة البحث',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            hasQuery
+                ? 'جرّب كلمة بحث مختلفة'
+                : 'جرّب تغيير الفلتر أو كلمة البحث',
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );

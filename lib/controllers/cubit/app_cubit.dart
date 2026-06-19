@@ -212,24 +212,47 @@ class AppCubit extends Cubit<AppStates> {
     required String location,
     required int capacity,
     required String status,
+    File? imageFile,
   }) async {
     emit(AddCampLoadingState());
     try {
+      String imageUrl = '';
+      if (imageFile != null) {
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+        final ref = _storage.ref('images/camps/$fileName');
+
+        // ✅ استخدم UploadTask بشكل صريح لمعرفة سبب الفشل
+        final UploadTask uploadTask = ref.putFile(imageFile);
+        final TaskSnapshot snapshot = await uploadTask;
+
+        // ✅ تأكد أن الرفع نجح قبل جلب الرابط
+        if (snapshot.state == TaskState.success) {
+          imageUrl = await snapshot.ref.getDownloadURL();
+        } else {
+          throw Exception('فشل رفع الصورة: ${snapshot.state}');
+        }
+      }
+
       await _db.collection('camps').add({
         'name': name,
         'location': location,
         'capacity': capacity,
         'current': 0,
         'status': status,
-        'image': '',
+        'image': imageUrl,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
       await addActivity(
         title: 'إضافة مخيم $name',
         campName: name,
         type: 'camp',
       );
       emit(AddCampSuccessState());
+    } on FirebaseException catch (e) {
+      // ✅ سيظهر كود الخطأ الحقيقي
+      emit(AddCampErrorState('Storage Error [${e.code}]: ${e.message}'));
     } catch (e) {
       emit(AddCampErrorState(e.toString()));
     }
@@ -238,6 +261,7 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> updateCamp(String campId, Map<String, dynamic> data) async {
     try {
       await _db.collection('camps').doc(campId).update(data);
+      emit(UpdateCampSuccessState());
     } catch (e) {
       emit(CampsErrorState(e.toString()));
     }
@@ -246,8 +270,9 @@ class AppCubit extends Cubit<AppStates> {
   Future<void> deleteCamp(String campId) async {
     try {
       await _db.collection('camps').doc(campId).delete();
+      emit(DeleteCampSuccessState());
     } catch (e) {
-      emit(CampsErrorState(e.toString()));
+      emit(DeleteCampErrorState(e.toString()));
     }
   }
 
@@ -404,8 +429,9 @@ class AppCubit extends Cubit<AppStates> {
       await _db.collection('camps').doc(campId).update({
         'current': FieldValue.increment(-membersCount),
       });
+      emit(DeleteFamilySuccessState());
     } catch (e) {
-      emit(DisplacedErrorState(e.toString()));
+      emit(DeleteFamilyErrorState(e.toString()));
     }
   }
 

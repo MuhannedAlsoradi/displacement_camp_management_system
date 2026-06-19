@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
 
-import '../screens/admin/camps_management_Screen.dart';
+import '../screens/admin/camps_management_screen.dart';
 import '../screens/admin/displaced_management_screen.dart';
 import '../../utils/styles/colors.dart';
-import '../screens/shared_notification_screen.dart';
+import '../screens/shared/shared_notification_screen.dart';
 
 class HomeLayout extends StatefulWidget {
   const HomeLayout({super.key});

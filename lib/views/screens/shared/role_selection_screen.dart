@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/enums/user_role.dart'; // ← enum مشترك
-import '../../utils/styles/colors.dart';
+import '../../../utils/enums/user_role.dart'; // ← enum مشترك
+import '../../../utils/styles/colors.dart';
 import 'login_screen.dart';
 
 // UserRole enum محذوف من هنا — موجود في user_role.dart

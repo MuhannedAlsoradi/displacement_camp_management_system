@@ -35,6 +35,15 @@ class AddCampErrorState extends AppStates {
   AddCampErrorState(this.error);
 }
 
+class DeleteCampSuccessState extends AppStates {}
+
+class DeleteCampErrorState extends AppStates {
+  final String error;
+  DeleteCampErrorState(this.error);
+}
+
+class UpdateCampSuccessState extends AppStates {}
+
 // Displaced Persons
 class DisplacedLoadingState extends AppStates {}
 
@@ -52,6 +61,13 @@ class AddDisplacedLoadingState extends AppStates {}
 class AddDisplacedErrorState extends AppStates {
   final String error;
   AddDisplacedErrorState(this.error);
+}
+
+class DeleteFamilySuccessState extends AppStates {}
+
+class DeleteFamilyErrorState extends AppStates {
+  final String error;
+  DeleteFamilyErrorState(this.error);
 }
 
 // Dashboard
@@ -97,5 +113,5 @@ class IdpFamilyErrorState extends AppStates {
   IdpFamilyErrorState(this.error);
 }
 
-// Notifications ← جديد
+// Notifications
 class NotificationsSuccessState extends AppStates {}

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../controllers/cubit/app_cubit.dart';
-import '../../controllers/cubit/app_states.dart';
-import '../../utils/enums/user_role.dart';
-import '../../utils/styles/colors.dart';
+import '../../../controllers/cubit/app_cubit.dart';
+import '../../../controllers/cubit/app_states.dart';
+import '../../../utils/enums/user_role.dart';
+import '../../../utils/styles/colors.dart';
 
 class SharedNotificationsScreen extends StatefulWidget {
   const SharedNotificationsScreen({super.key});
@@ -24,7 +24,7 @@ class _SharedNotificationsScreenState extends State<SharedNotificationsScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.backgroundPage,
-          appBar: _buildAppBar(context, cubit, role),
+          // appBar: _buildAppBar(context, cubit, role),
           body: _buildBody(context, cubit, role),
         );
       },

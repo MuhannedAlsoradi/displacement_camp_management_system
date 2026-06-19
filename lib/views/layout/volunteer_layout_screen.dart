@@ -1,21 +1,21 @@
+import 'package:displacement_camp_management_system/views/screens/shared/add_familiy_screen.dart';
+import 'package:displacement_camp_management_system/views/screens/shared/aid_distribution_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../utils/styles/colors.dart';
 import '../../controllers/cubit/app_cubit.dart';
 import '../../controllers/cubit/app_states.dart';
-import '../screens/shared_notification_screen.dart';
-import '../screens/volunteer/volunteer_aid_management_screen.dart';
+import '../screens/shared/shared_notification_screen.dart';
 import '../screens/volunteer/volunteer_dashboard_screen.dart';
 import '../screens/volunteer/volunteer_inquiry_screen.dart';
-import '../screens/volunteer/volunteer_register_family_screen.dart';
 
 class VolunteerLayoutScreen extends StatelessWidget {
   const VolunteerLayoutScreen({super.key});
 
   static final List<Widget> _screens = [
     const VolunteerDashboardScreen(),
-    const VolunteerRegisterFamilyScreen(),
-    const VolunteerAidManagementScreen(),
+    const AddFamilyScreen(),
+    const AidDistributionScreen(),
     const VolunteerInquiryScreen(),
     const SharedNotificationsScreen(),
   ];
@@ -29,7 +29,7 @@ class VolunteerLayoutScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: AppColors.backgroundPage,
-          appBar: _buildAppBar(context, cubit),
+          appBar: cubit.currentIndex != 2 ? _buildAppBar(context, cubit) : null,
           body: _screens[cubit.currentIndex],
           bottomNavigationBar: _buildBottomNav(cubit),
         );

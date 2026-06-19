@@ -4,11 +4,11 @@ import 'package:displacement_camp_management_system/views/layout/idp_layout_scre
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../layout/volunteer_layout_screen.dart';
-import '../../controllers/cubit/app_cubit.dart';
-import '../../controllers/cubit/app_states.dart';
-import '../../utils/enums/user_role.dart';
-import '../../utils/styles/colors.dart';
+import '../../layout/volunteer_layout_screen.dart';
+import '../../../controllers/cubit/app_cubit.dart';
+import '../../../controllers/cubit/app_states.dart';
+import '../../../utils/enums/user_role.dart';
+import '../../../utils/styles/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key, required this.role});
@@ -343,21 +343,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        'الدعم الفني',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.headset_mic, color: AppColors.textHint),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children: const [
+                  //     Text(
+                  //       'الدعم الفني',
+                  //       style: TextStyle(
+                  //         color: AppColors.textSecondary,
+                  //         fontSize: 18,
+                  //       ),
+                  //     ),
+                  //     SizedBox(width: 8),
+                  //     Icon(Icons.headset_mic, color: AppColors.textHint),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: 15),
                   const Text(
                     'Gaza Camp Management System 2026 ©',
                     style: TextStyle(

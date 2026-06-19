@@ -3,6 +3,7 @@ import 'package:displacement_camp_management_system/controllers/cubit/app_states
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../services/pdf_report_service.dart';
 import '../../../utils/styles/colors.dart';
 
 class ReportsScreen extends StatelessWidget {
@@ -27,7 +28,7 @@ class ReportsScreen extends StatelessWidget {
         // ── حساب إحصائيات المساعدات من البيانات الحقيقية ────────
         final Map<String, int> aidByType = {};
         for (final d in aidList) {
-          final type = d['type']?.toString() ?? 'أخرى';
+          final type = d['aidType']?.toString() ?? 'أخرى';
           aidByType[type] =
               (aidByType[type] ?? 0) + (d['quantity'] as int? ?? 0);
         }
@@ -260,13 +261,44 @@ class ReportsScreen extends StatelessWidget {
 
               // ══ 6. زر تصدير ════════════════════════════════════
               _ExportButton(
-                onTap: () {
+                onTap: () async {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('جاري تصدير التقرير...'),
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          ),
+                          SizedBox(width: 10),
+                          Text('جاري إنشاء التقرير...'),
+                        ],
+                      ),
                       backgroundColor: AppColors.primary,
+                      duration: Duration(seconds: 2),
                     ),
                   );
+
+                  try {
+                    await PdfReportService.generateAndShare(
+                      stats: cubit.dashboardStats,
+                      camps: cubit.camps,
+                      families: cubit.families,
+                      aidDistributions: cubit.aidDistributions,
+                      activities: cubit.recentActivities,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('خطأ في إنشاء التقرير: $e'),
+                          backgroundColor: AppColors.statusCritical,
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ],

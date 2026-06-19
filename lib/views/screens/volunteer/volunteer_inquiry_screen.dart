@@ -8,8 +8,7 @@ class VolunteerInquiryScreen extends StatefulWidget {
   const VolunteerInquiryScreen({super.key});
 
   @override
-  State<VolunteerInquiryScreen> createState() =>
-      _VolunteerInquiryScreenState();
+  State<VolunteerInquiryScreen> createState() => _VolunteerInquiryScreenState();
 }
 
 class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
@@ -32,24 +31,26 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPage,
-      appBar: AppBar(
-        backgroundColor: AppColors.backgroundCard,
-        elevation: 0,
-        title: const Text(
-          'استفسار عن العائلات',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppCubit.get(context).currentIndex != 3
+          ? AppBar(
+              backgroundColor: AppColors.backgroundCard,
+              elevation: 0,
+              title: const Text(
+                'استفسار عن العائلات',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios,
+                    color: AppColors.textPrimary, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            )
+          : null,
       body: Column(
         children: [
           /// شريط البحث
@@ -84,11 +85,11 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary, width: 1.5),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
@@ -104,15 +105,11 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
                 }
 
                 final filtered = cubit.families.where((f) {
-                  final name =
-                      (f['familyName'] ?? '').toString().toLowerCase();
-                  final rep = (f['representativeName'] ?? '')
-                      .toString()
-                      .toLowerCase();
-                  final id =
-                      (f['nationalId'] ?? '').toString().toLowerCase();
-                  final camp =
-                      (f['campName'] ?? '').toString().toLowerCase();
+                  final name = (f['familyName'] ?? '').toString().toLowerCase();
+                  final rep =
+                      (f['representativeName'] ?? '').toString().toLowerCase();
+                  final id = (f['nationalId'] ?? '').toString().toLowerCase();
+                  final camp = (f['campName'] ?? '').toString().toLowerCase();
                   final q = _searchQuery.toLowerCase();
                   return name.contains(q) ||
                       rep.contains(q) ||
@@ -262,9 +259,7 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
                   backgroundColor: AppColors.secondary50,
                   radius: 28,
                   child: Text(
-                    (family['familyName'] ?? 'أ')
-                        .toString()
-                        .substring(0, 1),
+                    (family['familyName'] ?? 'أ').toString().substring(0, 1),
                     style: const TextStyle(
                         color: AppColors.secondary,
                         fontWeight: FontWeight.bold,
@@ -297,22 +292,18 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
             const SizedBox(height: 12),
 
             /// التفاصيل
-            _detailRow('ممثل العائلة',
-                family['representativeName'] ?? '', Icons.person),
-            _detailRow(
-                'رقم الهوية', family['nationalId'] ?? '', Icons.badge),
-            _detailRow('عدد الأفراد',
-                '${family['membersCount'] ?? 0} فرد', Icons.group),
-            _detailRow(
-                'المخيم', family['campName'] ?? '', Icons.location_on),
-            _detailRow('المدينة الأصلية',
-                family['originCity'] ?? '', Icons.location_city),
+            _detailRow('ممثل العائلة', family['representativeName'] ?? '',
+                Icons.person),
+            _detailRow('رقم الهوية', family['nationalId'] ?? '', Icons.badge),
+            _detailRow('عدد الأفراد', '${family['membersCount'] ?? 0} فرد',
+                Icons.group),
+            _detailRow('المخيم', family['campName'] ?? '', Icons.location_on),
+            _detailRow('المدينة الأصلية', family['originCity'] ?? '',
+                Icons.location_city),
             if ((family['needs'] ?? '').isNotEmpty)
-              _detailRow(
-                  'الاحتياجات', family['needs'], Icons.medical_services),
+              _detailRow('الاحتياجات', family['needs'], Icons.medical_services),
             if ((family['tentId'] ?? '').isNotEmpty)
-              _detailRow('الخيمة', 'خيمة ${family['tentId']}',
-                  Icons.house),
+              _detailRow('الخيمة', 'خيمة ${family['tentId']}', Icons.house),
 
             const SizedBox(height: 16),
 
@@ -351,8 +342,8 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
           const SizedBox(width: 10),
           Text(
             '$label: ',
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 13),
+            style:
+                const TextStyle(color: AppColors.textSecondary, fontSize: 13),
           ),
           Expanded(
             child: Text(
@@ -369,15 +360,13 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
   }
 
   void _showUpdateNeedsDialog(Map<String, dynamic> family) {
-    final needsController =
-        TextEditingController(text: family['needs'] ?? '');
+    final needsController = TextEditingController(text: family['needs'] ?? '');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.backgroundCard,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('تحديث الاحتياجات',
             style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextFormField(
@@ -385,8 +374,7 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
           maxLines: 3,
           decoration: InputDecoration(
             hintText: 'أدخل احتياجات الأسرة...',
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide:
@@ -440,8 +428,7 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search_off,
-              color: AppColors.textHint, size: 48),
+          const Icon(Icons.search_off, color: AppColors.textHint, size: 48),
           const SizedBox(height: 12),
           Text(
             _searchQuery.isEmpty
