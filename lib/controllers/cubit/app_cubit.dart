@@ -68,6 +68,8 @@ class AppCubit extends Cubit<AppStates> {
   StreamSubscription? _activitiesSubscription;
   StreamSubscription? _aidSubscription;
   StreamSubscription? _notificationsSubscription; // ← جديد
+  StreamSubscription? _familyNotificationsSubscription; // ← جديد للنازحين
+  StreamSubscription? _campNotificationsSubscription; // ← جديد للنازحين
   StreamSubscription? _resourcesSubscription; // ← جديد
 
   // ════════════════════════════════════════════════════════
@@ -218,6 +220,8 @@ class AppCubit extends Cubit<AppStates> {
     _aidSubscription?.cancel();
     _familyAidSubscription?.cancel();
     _notificationsSubscription?.cancel(); // ← جديد
+    _familyNotificationsSubscription?.cancel(); // ← جديد للنازحين
+    _campNotificationsSubscription?.cancel(); // ← جديد للنازحين
     _resourcesSubscription?.cancel(); // ← جديد
   }
 
@@ -912,19 +916,62 @@ class AppCubit extends Cubit<AppStates> {
     if (uid == null) return;
 
     _notificationsSubscription?.cancel();
+    _familyNotificationsSubscription?.cancel();
+    _campNotificationsSubscription?.cancel();
 
-    _notificationsSubscription = _db
-        .collection('notifications')
-        .where('userId', isEqualTo: uid)
-        .snapshots()
-        .listen(
-      (snapshot) {
-        notifications = snapshot.docs.map((doc) {
-          final data = doc.data();
-          final createdAt = data['createdAt'];
-          String timeAgo = '';
-          if (createdAt != null) {
-            final date = (createdAt as Timestamp).toDate();
+    if (currentRole == UserRole.displaced) {
+      final familyId = currentFamily?['id'] as String? ?? '';
+      final campName = currentFamily?['campName'] as String? ?? '';
+
+      // بالنسبة للنازح، نحتاج دمج الإشعارات الخاصة به، والخاصة بعائلته، والخاصة بمخيمه.
+      final Map<String, Map<String, dynamic>> mergedNotifications = {};
+
+      void updateListAndEmit() {
+        notifications = mergedNotifications.values.toList();
+        
+        // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
+        notifications.sort((a, b) {
+          final aVal = a['createdAt'];
+          final bVal = b['createdAt'];
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return -1; // الإشعار الجديد بدون تاريخ يكون بالأعلى
+          if (bVal == null) return 1;
+          
+          DateTime? aTime;
+          if (aVal is Timestamp) {
+            aTime = aVal.toDate();
+          } else if (aVal is DateTime) {
+            aTime = aVal;
+          }
+          
+          DateTime? bTime;
+          if (bVal is Timestamp) {
+            bTime = bVal.toDate();
+          } else if (bVal is DateTime) {
+            bTime = bVal;
+          }
+          
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return -1;
+          if (bTime == null) return 1;
+          return bTime.compareTo(aTime);
+        });
+
+        emit(NotificationsSuccessState());
+      }
+
+      Map<String, dynamic> parseDoc(QueryDocumentSnapshot doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final createdAt = data['createdAt'];
+        String timeAgo = '';
+        if (createdAt != null) {
+          DateTime? date;
+          if (createdAt is Timestamp) {
+            date = createdAt.toDate();
+          } else if (createdAt is DateTime) {
+            date = createdAt;
+          }
+          if (date != null) {
             final diff = DateTime.now().difference(date);
             if (diff.inMinutes < 1) {
               timeAgo = 'الآن';
@@ -936,35 +983,145 @@ class AppCubit extends Cubit<AppStates> {
               timeAgo = 'منذ ${diff.inDays} يوم';
             }
           }
-          return {
-            'id': doc.id,
-            'userId': data['userId'] ?? '',
-            'role': data['role'] ?? '',
-            'familyId': data['familyId'] ?? '',
-            'campName': data['campName'] ?? '',
-            'title': data['title'] ?? '',
-            'message': data['message'] ?? '',
-            'type': data['type'] ?? 'default',
-            'isRead': data['isRead'] ?? false,
-            'createdAt': data['createdAt'],
-            'timeAgo': timeAgo,
-          };
-        }).toList();
+        }
+        return {
+          'id': doc.id,
+          'userId': data['userId'] ?? '',
+          'role': data['role'] ?? '',
+          'familyId': data['familyId'] ?? '',
+          'campName': data['campName'] ?? '',
+          'title': data['title'] ?? '',
+          'message': data['message'] ?? '',
+          'type': data['type'] ?? 'default',
+          'isRead': data['isRead'] ?? false,
+          'createdAt': data['createdAt'],
+          'timeAgo': timeAgo,
+        };
+      }
 
-        // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
-        notifications.sort((a, b) {
-          final aTime = a['createdAt'] as Timestamp?;
-          final bTime = b['createdAt'] as Timestamp?;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
+      // 1. اشتراك الإشعارات الموجهة للمستخدم مباشرة
+      _notificationsSubscription = _db
+          .collection('notifications')
+          .where('userId', isEqualTo: uid)
+          .snapshots()
+          .listen((snapshot) {
+        for (final doc in snapshot.docs) {
+          mergedNotifications[doc.id] = parseDoc(doc);
+        }
+        updateListAndEmit();
+      }, onError: (_) {});
 
-        emit(NotificationsSuccessState());
-      },
-      onError: (_) {},
-    );
+      // 2. اشتراك الإشعارات الموجهة لعائلة المستخدم
+      if (familyId.isNotEmpty) {
+        _familyNotificationsSubscription = _db
+            .collection('notifications')
+            .where('familyId', isEqualTo: familyId)
+            .snapshots()
+            .listen((snapshot) {
+          for (final doc in snapshot.docs) {
+            mergedNotifications[doc.id] = parseDoc(doc);
+          }
+          updateListAndEmit();
+        }, onError: (_) {});
+      }
+
+      // 3. اشتراك إشعارات المخيم العامة
+      if (campName.isNotEmpty) {
+        _campNotificationsSubscription = _db
+            .collection('notifications')
+            .where('campName', isEqualTo: campName)
+            .snapshots()
+            .listen((snapshot) {
+          for (final doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final fid = data['familyId'] as String? ?? '';
+            if (fid.isEmpty) {
+              mergedNotifications[doc.id] = parseDoc(doc);
+            }
+          }
+          updateListAndEmit();
+        }, onError: (_) {});
+      }
+    } else {
+      // بالنسبة للمشرف والمتطوع، فقط الإشعارات الموجهة لهم مباشرة
+      _notificationsSubscription = _db
+          .collection('notifications')
+          .where('userId', isEqualTo: uid)
+          .snapshots()
+          .listen(
+        (snapshot) {
+          notifications = snapshot.docs.map((doc) {
+            final data = doc.data();
+            final createdAt = data['createdAt'];
+            String timeAgo = '';
+            if (createdAt != null) {
+              DateTime? date;
+              if (createdAt is Timestamp) {
+                date = createdAt.toDate();
+              } else if (createdAt is DateTime) {
+                date = createdAt;
+              }
+              if (date != null) {
+                final diff = DateTime.now().difference(date);
+                if (diff.inMinutes < 1) {
+                  timeAgo = 'الآن';
+                } else if (diff.inMinutes < 60) {
+                  timeAgo = 'منذ ${diff.inMinutes} دقيقة';
+                } else if (diff.inHours < 24) {
+                  timeAgo = 'منذ ${diff.inHours} ساعة';
+                } else {
+                  timeAgo = 'منذ ${diff.inDays} يوم';
+                }
+              }
+            }
+            return {
+              'id': doc.id,
+              'userId': data['userId'] ?? '',
+              'role': data['role'] ?? '',
+              'familyId': data['familyId'] ?? '',
+              'campName': data['campName'] ?? '',
+              'title': data['title'] ?? '',
+              'message': data['message'] ?? '',
+              'type': data['type'] ?? 'default',
+              'isRead': data['isRead'] ?? false,
+              'createdAt': data['createdAt'],
+              'timeAgo': timeAgo,
+            };
+          }).toList();
+
+          // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
+          notifications.sort((a, b) {
+            final aVal = a['createdAt'];
+            final bVal = b['createdAt'];
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return -1;
+            if (bVal == null) return 1;
+            
+            DateTime? aTime;
+            if (aVal is Timestamp) {
+              aTime = aVal.toDate();
+            } else if (aVal is DateTime) {
+              aTime = aVal;
+            }
+            
+            DateTime? bTime;
+            if (bVal is Timestamp) {
+              bTime = bVal.toDate();
+            } else if (bVal is DateTime) {
+              bTime = bVal;
+            }
+            
+            if (aTime == null && bTime == null) return 0;
+            if (aTime == null) return -1;
+            if (bTime == null) return 1;
+            return bTime.compareTo(aTime);
+          });
+
+          emit(NotificationsSuccessState());
+        },
+        onError: (_) {},
+      );
+    }
   }
 
   /// عدد الإشعارات غير المقروءة — مفيد لشارة الـ badge
