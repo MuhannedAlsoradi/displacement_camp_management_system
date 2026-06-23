@@ -950,6 +950,17 @@ class AppCubit extends Cubit<AppStates> {
             'timeAgo': timeAgo,
           };
         }).toList();
+
+        // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
+        notifications.sort((a, b) {
+          final aTime = a['createdAt'] as Timestamp?;
+          final bTime = b['createdAt'] as Timestamp?;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
+
         emit(NotificationsSuccessState());
       },
       onError: (_) {},

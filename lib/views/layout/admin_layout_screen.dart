@@ -70,8 +70,7 @@ class _HomeLayoutState extends State<HomeLayout> {
   Widget build(BuildContext context) {
     return BlocBuilder<AppCubit, AppStates>(
       buildWhen: (prev, curr) =>
-          curr is ChangeCurrentIndexState ||
-          curr is NotificationsSuccessState,
+          curr is ChangeCurrentIndexState || curr is NotificationsSuccessState,
       builder: (context, state) {
         final cubit = AppCubit.get(context);
         return Scaffold(
@@ -214,7 +213,8 @@ class _HomeLayoutState extends State<HomeLayout> {
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                      builder: (_) => const RoleSelectionScreen()), // اسم الشاشة عندك
+                      builder: (_) =>
+                          const RoleSelectionScreen()), // اسم الشاشة عندك
                   (route) => false,
                 );
               }
