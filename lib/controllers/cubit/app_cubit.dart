@@ -910,6 +910,14 @@ class AppCubit extends Cubit<AppStates> {
   // ════════════════════════════════════════════════════════
   List<Map<String, dynamic>> notifications = [];
 
+  DateTime? _parseCreatedAt(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
   /// يبدأ الاستماع لإشعارات المستخدم الحالي فقط
   void listenToNotifications() {
     final uid = _auth.currentUser?.uid;
@@ -931,28 +939,11 @@ class AppCubit extends Cubit<AppStates> {
         
         // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
         notifications.sort((a, b) {
-          final aVal = a['createdAt'];
-          final bVal = b['createdAt'];
-          if (aVal == null && bVal == null) return 0;
-          if (aVal == null) return -1; // الإشعار الجديد بدون تاريخ يكون بالأعلى
-          if (bVal == null) return 1;
-          
-          DateTime? aTime;
-          if (aVal is Timestamp) {
-            aTime = aVal.toDate();
-          } else if (aVal is DateTime) {
-            aTime = aVal;
-          }
-          
-          DateTime? bTime;
-          if (bVal is Timestamp) {
-            bTime = bVal.toDate();
-          } else if (bVal is DateTime) {
-            bTime = bVal;
-          }
+          final aTime = _parseCreatedAt(a['createdAt']);
+          final bTime = _parseCreatedAt(b['createdAt']);
           
           if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return -1;
+          if (aTime == null) return -1; // الإشعار الجديد بدون تاريخ يكون بالأعلى
           if (bTime == null) return 1;
           return bTime.compareTo(aTime);
         });
@@ -965,12 +956,7 @@ class AppCubit extends Cubit<AppStates> {
         final createdAt = data['createdAt'];
         String timeAgo = '';
         if (createdAt != null) {
-          DateTime? date;
-          if (createdAt is Timestamp) {
-            date = createdAt.toDate();
-          } else if (createdAt is DateTime) {
-            date = createdAt;
-          }
+          final date = _parseCreatedAt(createdAt);
           if (date != null) {
             final diff = DateTime.now().difference(date);
             if (diff.inMinutes < 1) {
@@ -1055,12 +1041,7 @@ class AppCubit extends Cubit<AppStates> {
             final createdAt = data['createdAt'];
             String timeAgo = '';
             if (createdAt != null) {
-              DateTime? date;
-              if (createdAt is Timestamp) {
-                date = createdAt.toDate();
-              } else if (createdAt is DateTime) {
-                date = createdAt;
-              }
+              final date = _parseCreatedAt(createdAt);
               if (date != null) {
                 final diff = DateTime.now().difference(date);
                 if (diff.inMinutes < 1) {
@@ -1091,25 +1072,8 @@ class AppCubit extends Cubit<AppStates> {
 
           // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
           notifications.sort((a, b) {
-            final aVal = a['createdAt'];
-            final bVal = b['createdAt'];
-            if (aVal == null && bVal == null) return 0;
-            if (aVal == null) return -1;
-            if (bVal == null) return 1;
-            
-            DateTime? aTime;
-            if (aVal is Timestamp) {
-              aTime = aVal.toDate();
-            } else if (aVal is DateTime) {
-              aTime = aVal;
-            }
-            
-            DateTime? bTime;
-            if (bVal is Timestamp) {
-              bTime = bVal.toDate();
-            } else if (bVal is DateTime) {
-              bTime = bVal;
-            }
+            final aTime = _parseCreatedAt(a['createdAt']);
+            final bTime = _parseCreatedAt(b['createdAt']);
             
             if (aTime == null && bTime == null) return 0;
             if (aTime == null) return -1;

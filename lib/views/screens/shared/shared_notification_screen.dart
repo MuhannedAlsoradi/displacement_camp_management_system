@@ -21,6 +21,16 @@ class SharedNotificationsScreen extends StatefulWidget {
 
 class _SharedNotificationsScreenState extends State<SharedNotificationsScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppCubit.get(context).listenToNotifications();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<AppCubit, AppStates>(
       builder: (context, state) {
