@@ -1,6 +1,8 @@
 import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
 import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:displacement_camp_management_system/views/screens/idp/idp_services_screen.dart';
+import 'package:displacement_camp_management_system/views/screens/idp/idp_awareness_screen.dart';
 
 class IdpDashboardScreen extends StatelessWidget {
   const IdpDashboardScreen({super.key});
@@ -119,14 +121,24 @@ class IdpDashboardScreen extends StatelessWidget {
                   label: 'خدمات المخيم',
                   iconColor: const Color(0xFF0F6E56),
                   iconBg: const Color(0xFFE1F5EE),
-                  onTap: () {},
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const IdpServicesScreen(),
+                    ),
+                  ),
                 ),
                 _serviceItem(
                   icon: Icons.menu_book_outlined,
                   label: 'محتوى تعليمي',
                   iconColor: const Color(0xFF92400E),
                   iconBg: const Color(0xFFFFF7ED),
-                  onTap: () {},
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const IdpAwarenessScreen(),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -163,6 +175,12 @@ class IdpDashboardScreen extends StatelessWidget {
               iconBg: const Color(0xFFE6F1FB),
               title: 'حقوقك كنازح',
               subtitle: 'تعرف على حقوقك الإنسانية',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const IdpAwarenessScreen(categoryFilter: 'حقوق')),
+              ),
             ),
             const SizedBox(height: 8),
             _educationalItem(
@@ -171,6 +189,12 @@ class IdpDashboardScreen extends StatelessWidget {
               iconBg: const Color(0xFFE1F5EE),
               title: 'الصحة العامة',
               subtitle: 'نصائح صحية في المخيم',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const IdpAwarenessScreen(categoryFilter: 'صحة')),
+              ),
             ),
             const SizedBox(height: 8),
             _educationalItem(
@@ -179,6 +203,12 @@ class IdpDashboardScreen extends StatelessWidget {
               iconBg: const Color(0xFFEEF0FF),
               title: 'التعليم والتدريب',
               subtitle: 'فرص تعليمية متاحة',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const IdpAwarenessScreen(categoryFilter: 'تعليم')),
+              ),
             ),
           ],
         ),
@@ -240,54 +270,59 @@ class IdpDashboardScreen extends StatelessWidget {
     required Color iconBg,
     required String title,
     required String subtitle,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(9),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundCard,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
             ),
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textHint,
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textHint,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.textHint,
-            size: 18,
-          ),
-        ],
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textHint,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

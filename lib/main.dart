@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:displacement_camp_management_system/views/screens/shared/role_selection_screen.dart';
 import 'package:displacement_camp_management_system/controllers/cubit/app_cubit.dart';
 import 'package:displacement_camp_management_system/utils/styles/colors.dart';
@@ -12,7 +13,11 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
+// main.dart — بعد Firebase.initializeApp()
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
   runApp(const MyApp());
 }
 

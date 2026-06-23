@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,8 +9,49 @@ import 'package:displacement_camp_management_system/controllers/cubit/app_states
 import 'package:displacement_camp_management_system/utils/enums/user_role.dart';
 
 class AppCubit extends Cubit<AppStates> {
-  AppCubit() : super(InitState());
+  AppCubit() : super(InitState()) {
+    _initConnectivityListener();
+  }
   static AppCubit get(context) => BlocProvider.of(context);
+  bool isOnline = true;
+  bool hasPendingWrites = false;
+  DateTime? lastSyncTime;
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+
+  void _initConnectivityListener() {
+    Connectivity().checkConnectivity().then(_updateConnectionStatus);
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen(_updateConnectionStatus);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+    final online = result != ConnectivityResult.none;
+    if (online != isOnline) {
+      isOnline = online;
+      if (online) {
+        lastSyncTime = DateTime.now();
+      }
+      emit(ConnectivityChangedState(isOnline));
+    }
+  }
+
+  final Set<String> _pendingCollections = {};
+
+  void _trackPendingWrites(QuerySnapshot snapshot, String collectionName) {
+    final pending = snapshot.metadata.hasPendingWrites;
+    if (pending) {
+      _pendingCollections.add(collectionName);
+    } else {
+      _pendingCollections.remove(collectionName);
+    }
+
+    final newStatus = _pendingCollections.isNotEmpty;
+    if (newStatus != hasPendingWrites) {
+      hasPendingWrites = newStatus;
+      if (!hasPendingWrites) lastSyncTime = DateTime.now();
+      emit(SyncStatusChangedState(hasPendingWrites));
+    }
+  }
 
   // ════════════════════════════════════════════════════════
   //  Firebase Instances
@@ -26,6 +68,7 @@ class AppCubit extends Cubit<AppStates> {
   StreamSubscription? _activitiesSubscription;
   StreamSubscription? _aidSubscription;
   StreamSubscription? _notificationsSubscription; // ← جديد
+  StreamSubscription? _resourcesSubscription; // ← جديد
 
   // ════════════════════════════════════════════════════════
   //  Navigation
@@ -102,7 +145,8 @@ class AppCubit extends Cubit<AppStates> {
             return;
           }
           await getIdpFamily(familyId);
-          listenToNotifications(); // ← جديد
+          listenToFamilyAid(familyId);
+          listenToNotifications();
           break;
       }
 
@@ -146,11 +190,13 @@ class AppCubit extends Cubit<AppStates> {
     listenToFamilies();
     listenToActivities();
     listenToAid();
+    listenToResources(); // ← جديد
   }
 
   void startVolunteerListeners() {
     listenToFamilies();
     listenToAid();
+    listenToResources(); // ← جديد
   }
 
   /// مزامنة البيانات المعلّقة (offline → online)
@@ -170,7 +216,9 @@ class AppCubit extends Cubit<AppStates> {
     _familiesSubscription?.cancel();
     _activitiesSubscription?.cancel();
     _aidSubscription?.cancel();
+    _familyAidSubscription?.cancel();
     _notificationsSubscription?.cancel(); // ← جديد
+    _resourcesSubscription?.cancel(); // ← جديد
   }
 
   @override
@@ -192,9 +240,10 @@ class AppCubit extends Cubit<AppStates> {
     _campsSubscription = _db
         .collection('camps')
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true) // ← جديد
         .listen(
       (snapshot) {
+        _trackPendingWrites(snapshot, 'camps'); // ← جديد
         camps = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -249,6 +298,15 @@ class AppCubit extends Cubit<AppStates> {
         campName: name,
         type: 'camp',
       );
+
+      // ← جديد: إشعار كل الأدمنز بإضافة المخيم
+      await notifyAllAdmins(
+        title: 'مخيم جديد',
+        message: 'تم إضافة مخيم "$name" بسعة $capacity فرد',
+        type: 'camp',
+        campName: name,
+      );
+
       emit(AddCampSuccessState());
     } on FirebaseException catch (e) {
       // ✅ سيظهر كود الخطأ الحقيقي
@@ -288,7 +346,7 @@ class AppCubit extends Cubit<AppStates> {
           .collection('camps')
           .doc(campId)
           .collection('tents')
-          .where('status', isEqualTo: 'متاحة')
+          .orderBy('tentId')
           .get();
 
       availableTents = snapshot.docs.map((doc) {
@@ -298,6 +356,185 @@ class AppCubit extends Cubit<AppStates> {
       emit(CampsSuccessState());
     } catch (e) {
       emit(CampsErrorState(e.toString()));
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  Tents — Actions (إضافة / تعديل حالة / حذف)
+  // ════════════════════════════════════════════════════════
+
+  Future<void> addTent({
+    required String campId,
+    required String tentId,
+    required int capacity,
+  }) async {
+    emit(TentActionLoadingState());
+    try {
+      final dup = await _db
+          .collection('camps')
+          .doc(campId)
+          .collection('tents')
+          .where('tentId', isEqualTo: tentId)
+          .limit(1)
+          .get();
+
+      if (dup.docs.isNotEmpty) {
+        emit(TentActionErrorState('رقم الخيمة "$tentId" موجود مسبقاً'));
+        return;
+      }
+
+      await _db.collection('camps').doc(campId).collection('tents').add({
+        'tentId': tentId,
+        'capacity': capacity,
+        'status': 'متاحة',
+        'assignedFamily': '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      emit(TentActionSuccessState('تم إضافة الخيمة بنجاح'));
+      await getAvailableTents(campId);
+    } catch (e) {
+      emit(TentActionErrorState(e.toString()));
+    }
+  }
+
+  Future<void> updateTentStatus({
+    required String campId,
+    required String tentDocId,
+    required String newStatus,
+  }) async {
+    emit(TentActionLoadingState());
+    try {
+      await _db
+          .collection('camps')
+          .doc(campId)
+          .collection('tents')
+          .doc(tentDocId)
+          .update({'status': newStatus});
+
+      emit(TentActionSuccessState(
+        newStatus == 'متاحة'
+            ? 'تم تعيين الخيمة كمتاحة'
+            : 'تم تعيين الخيمة كغير متاحة',
+      ));
+      await getAvailableTents(campId);
+    } catch (e) {
+      emit(TentActionErrorState(e.toString()));
+    }
+  }
+
+  Future<void> deleteTent({
+    required String campId,
+    required String tentDocId,
+  }) async {
+    emit(TentActionLoadingState());
+    try {
+      final tentRef = _db
+          .collection('camps')
+          .doc(campId)
+          .collection('tents')
+          .doc(tentDocId);
+
+      final tentSnap = await tentRef.get();
+      final assignedFamily =
+          tentSnap.data()?['assignedFamily']?.toString() ?? '';
+
+      if (assignedFamily.isNotEmpty) {
+        emit(TentActionErrorState(
+          'لا يمكن حذف الخيمة لأنها مخصصة لعائلة "$assignedFamily" — احذف العائلة أو انقلها أولاً',
+        ));
+        return;
+      }
+
+      await tentRef.delete();
+
+      emit(TentActionSuccessState('تم حذف الخيمة'));
+      await getAvailableTents(campId);
+    } catch (e) {
+      emit(TentActionErrorState(e.toString()));
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  Families & Displaced — Real-time
+  // ════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════
+  //  Resources / Aid Types — تعريف الأدمن لأنواع المساعدات والكميات
+  // ════════════════════════════════════════════════════════
+  List<Map<String, dynamic>> resources = [];
+
+  void listenToResources() {
+    _resourcesSubscription?.cancel();
+
+    _resourcesSubscription = _db
+        .collection('resources')
+        .orderBy('createdAt', descending: true)
+        .snapshots(includeMetadataChanges: true) // ← جديد
+        .listen(
+      (snapshot) {
+        _trackPendingWrites(snapshot, 'resources'); // ← جديد
+        resources = snapshot.docs.map((doc) {
+          return {'id': doc.id, ...doc.data()};
+        }).toList();
+        emit(ResourcesSuccessState());
+      },
+      onError: (e) => emit(ResourcesErrorState(e.toString())),
+    );
+  }
+
+  Future<void> addResource({
+    required String aidType,
+    required int quantityAvailable,
+    String unit = '',
+  }) async {
+    emit(ResourceActionLoadingState());
+    try {
+      final dup = await _db
+          .collection('resources')
+          .where('aidType', isEqualTo: aidType)
+          .limit(1)
+          .get();
+
+      if (dup.docs.isNotEmpty) {
+        emit(ResourceActionErrorState('نوع المساعدة "$aidType" موجود مسبقاً'));
+        return;
+      }
+
+      await _db.collection('resources').add({
+        'aidType': aidType,
+        'quantityAvailable': quantityAvailable,
+        'unit': unit,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      emit(ResourceActionSuccessState('تم إضافة نوع المساعدة بنجاح'));
+    } catch (e) {
+      emit(ResourceActionErrorState(e.toString()));
+    }
+  }
+
+  Future<void> updateResourceQuantity({
+    required String resourceId,
+    required int newQuantity,
+  }) async {
+    emit(ResourceActionLoadingState());
+    try {
+      await _db.collection('resources').doc(resourceId).update({
+        'quantityAvailable': newQuantity,
+      });
+      emit(ResourceActionSuccessState('تم تحديث الكمية بنجاح'));
+    } catch (e) {
+      emit(ResourceActionErrorState(e.toString()));
+    }
+  }
+
+  Future<void> deleteResource(String resourceId) async {
+    emit(ResourceActionLoadingState());
+    try {
+      await _db.collection('resources').doc(resourceId).delete();
+      emit(ResourceActionSuccessState('تم حذف نوع المساعدة'));
+    } catch (e) {
+      emit(ResourceActionErrorState(e.toString()));
     }
   }
 
@@ -314,9 +551,10 @@ class AppCubit extends Cubit<AppStates> {
     _familiesSubscription = _db
         .collection('families')
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true) // ← جديد
         .listen(
       (snapshot) {
+        _trackPendingWrites(snapshot, 'families'); // ← جديد
         families = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -390,6 +628,7 @@ class AppCubit extends Cubit<AppStates> {
         'current': FieldValue.increment(membersCount),
       });
 
+      // ← معدّل: هلق منحفظ اسم العائلة على الخيمة المعيّنة، مش بس الحالة
       if (tentDocId.isNotEmpty) {
         final tentRef = _db
             .collection('camps')
@@ -398,7 +637,10 @@ class AppCubit extends Cubit<AppStates> {
             .doc(tentDocId);
         final tentSnap = await tentRef.get();
         if (tentSnap.exists) {
-          await tentRef.update({'status': 'غير متاحة'});
+          await tentRef.update({
+            'status': 'غير متاحة',
+            'assignedFamily': familyName,
+          });
         }
       }
 
@@ -406,6 +648,15 @@ class AppCubit extends Cubit<AppStates> {
         title: 'تسجيل عائلة جديدة: $familyName',
         campName: campName,
         type: 'register',
+      );
+
+      // ← جديد: إشعار كل الأدمنز بتسجيل العائلة
+      await notifyAllAdmins(
+        title: 'عائلة جديدة',
+        message:
+            'تم تسجيل عائلة "$familyName" ($membersCount أفراد) في مخيم $campName',
+        type: 'register',
+        campName: campName,
       );
 
       emit(AddDisplacedSuccessState());
@@ -422,13 +673,82 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
+  /// تعيين/تغيير خيمة لعائلة مسجّلة مسبقاً
+  /// بتحرر الخيمة القديمة (لو موجودة) وبتحجز الجديدة وبتحدّث بيانات العائلة
+  Future<void> assignTentToFamily({
+    required String familyId,
+    required String campId,
+    required String familyName,
+    required String newTentDocId,
+    required String newTentId,
+    String oldTentDocId = '',
+  }) async {
+    emit(TentActionLoadingState());
+    try {
+      if (oldTentDocId.isNotEmpty && oldTentDocId != newTentDocId) {
+        final oldTentRef = _db
+            .collection('camps')
+            .doc(campId)
+            .collection('tents')
+            .doc(oldTentDocId);
+        final oldSnap = await oldTentRef.get();
+        if (oldSnap.exists) {
+          await oldTentRef.update({
+            'status': 'متاحة',
+            'assignedFamily': '',
+          });
+        }
+      }
+
+      await _db
+          .collection('camps')
+          .doc(campId)
+          .collection('tents')
+          .doc(newTentDocId)
+          .update({
+        'status': 'غير متاحة',
+        'assignedFamily': familyName,
+      });
+
+      await _db.collection('families').doc(familyId).update({
+        'tentDocId': newTentDocId,
+        'tentId': newTentId,
+      });
+
+      emit(TentActionSuccessState('تم تعيين الخيمة بنجاح'));
+    } catch (e) {
+      emit(TentActionErrorState(e.toString()));
+    }
+  }
+
+  // ← معدّل: هلق بتقبل tentDocId اختياري، ولو موجود بتحرر الخيمة (ترجعها متاحة وتمسح اسم العائلة)
   Future<void> deleteFamily(
-      String familyId, String campId, int membersCount) async {
+    String familyId,
+    String campId,
+    int membersCount, {
+    String tentDocId = '',
+  }) async {
     try {
       await _db.collection('families').doc(familyId).delete();
       await _db.collection('camps').doc(campId).update({
         'current': FieldValue.increment(-membersCount),
       });
+
+      if (tentDocId.isNotEmpty) {
+        final tentRef = _db
+            .collection('camps')
+            .doc(campId)
+            .collection('tents')
+            .doc(tentDocId);
+        final tentSnap = await tentRef.get();
+        if (tentSnap.exists) {
+          await tentRef.update({
+            'status': 'متاحة',
+            'assignedFamily': '',
+          });
+        }
+      }
+
       emit(DeleteFamilySuccessState());
     } catch (e) {
       emit(DeleteFamilyErrorState(e.toString()));
@@ -461,6 +781,27 @@ class AppCubit extends Cubit<AppStates> {
         return;
       }
 
+      // ← جديد: تحديث المخزون المرتبط بنوع المساعدة (لو معرّف بالنظام)
+      final resourceQuery = await _db
+          .collection('resources')
+          .where('aidType', isEqualTo: aidType)
+          .limit(1)
+          .get();
+
+      if (resourceQuery.docs.isNotEmpty) {
+        final resourceDoc = resourceQuery.docs.first;
+        final available =
+            (resourceDoc.data()['quantityAvailable'] as int?) ?? 0;
+        if (available < quantity) {
+          emit(AddDisplacedErrorState(
+              'الكمية المتاحة من $aidType غير كافية ($available متبقي)'));
+          return;
+        }
+        await resourceDoc.reference.update({
+          'quantityAvailable': FieldValue.increment(-quantity),
+        });
+      }
+
       await _db.collection('aid_distributions').add({
         'familyId': familyId,
         'familyName': familyName,
@@ -475,6 +816,24 @@ class AppCubit extends Cubit<AppStates> {
         title: 'توزيع $aidType على عائلة $familyName',
         campName: campName,
         type: 'aid',
+      );
+
+      // ← جديد: إشعار كل الأدمنز بعملية التوزيع
+      await notifyAllAdmins(
+        title: 'توزيع مساعدة',
+        message: 'تم توزيع $quantity وحدة من "$aidType" لعائلة $familyName',
+        type: 'aid',
+        campName: campName,
+        familyId: familyId,
+      );
+
+      // ← جديد: إشعار حساب الأسرة نفسها (لو مرتبطة بحساب مستخدم)
+      await notifyFamilyUser(
+        familyId: familyId,
+        title: 'تم توزيع مساعدات جديدة',
+        message: 'استلمت أسرتك $quantity وحدة من "$aidType"',
+        type: 'aid',
+        campName: campName,
       );
 
       emit(AddDisplacedSuccessState());
@@ -543,7 +902,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   // ════════════════════════════════════════════════════════
-  //  Notifications — Real-time  ← جديد بالكامل
+  //  Notifications — Real-time
   // ════════════════════════════════════════════════════════
   List<Map<String, dynamic>> notifications = [];
 
@@ -649,11 +1008,101 @@ class AppCubit extends Cubit<AppStates> {
     } catch (_) {}
   }
 
+  /// ← جديد: إرسال إشعار لكل المستخدمين الذين دورهم admin
+  /// تُستخدم بعد أي إجراء مهم (إضافة مخيم، تسجيل عائلة، توزيع مساعدة...)
+  Future<void> notifyAllAdmins({
+    required String title,
+    required String message,
+    required String type,
+    String? campName,
+    String? familyId,
+  }) async {
+    try {
+      final admins =
+          await _db.collection('users').where('role', isEqualTo: 'admin').get();
+
+      if (admins.docs.isEmpty) return;
+
+      final batch = _db.batch();
+      for (final adminDoc in admins.docs) {
+        final ref = _db.collection('notifications').doc();
+        batch.set(ref, {
+          'userId': adminDoc.id,
+          'role': 'admin',
+          'title': title,
+          'message': message,
+          'type': type,
+          'campName': campName ?? '',
+          'familyId': familyId ?? '',
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  /// ← جديد: إرسال إشعار لحساب النازح المرتبط بأسرة معيّنة (إن وُجد حساب مرتبط بـ familyId)
+  Future<void> notifyFamilyUser({
+    required String familyId,
+    required String title,
+    required String message,
+    required String type,
+    String? campName,
+  }) async {
+    try {
+      if (familyId.isEmpty) return;
+
+      final userQuery = await _db
+          .collection('users')
+          .where('familyId', isEqualTo: familyId)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        // الأسرة ما عندها حساب مستخدم مرتبط بعد — تجاهل بصمت
+        return;
+      }
+
+      final userId = userQuery.docs.first.id;
+
+      await sendNotification(
+        userId: userId,
+        role: 'displaced',
+        title: title,
+        message: message,
+        type: type,
+        campName: campName,
+        familyId: familyId,
+      );
+    } catch (_) {}
+  }
+
   // ════════════════════════════════════════════════════════
   //  Aid Distributions — Real-time
   // ════════════════════════════════════════════════════════
   List<Map<String, dynamic>> aidDistributions = [];
   int totalAid = 0;
+  StreamSubscription? _familyAidSubscription;
+
+  void listenToFamilyAid(String familyId) {
+    _familyAidSubscription?.cancel();
+
+    _familyAidSubscription = _db
+        .collection('aid_distributions')
+        .where('familyId', isEqualTo: familyId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        aidDistributions = snapshot.docs.map((doc) {
+          return {'id': doc.id, ...doc.data()};
+        }).toList();
+        emit(AidSuccessState()); // أو أي state مناسبة عندك
+      },
+      onError: (_) {},
+    );
+  }
 
   void listenToAid() {
     _aidSubscription?.cancel();
@@ -661,9 +1110,10 @@ class AppCubit extends Cubit<AppStates> {
     _aidSubscription = _db
         .collection('aid_distributions')
         .orderBy('createdAt', descending: true)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true) // ← جديد
         .listen(
       (snapshot) {
+        _trackPendingWrites(snapshot, 'aid_distributions'); // ← جديد
         aidDistributions = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();

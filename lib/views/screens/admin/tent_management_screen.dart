@@ -25,20 +25,24 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
-      listenWhen: (p, c) => c is CampsSuccessState || c is CampsErrorState,
+      listenWhen: (p, c) =>
+          c is CampsErrorState ||
+          c is TentActionSuccessState ||
+          c is TentActionErrorState,
       listener: (context, state) {
         if (state is CampsErrorState) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.error),
-            backgroundColor: AppColors.statusCritical,
-            behavior: SnackBarBehavior.floating,
-          ));
+          _showSnack(state.error, AppColors.statusCritical);
+        } else if (state is TentActionSuccessState) {
+          _showSnack(state.message, AppColors.statusStable);
+        } else if (state is TentActionErrorState) {
+          _showSnack(state.error, AppColors.statusCritical);
         }
       },
       buildWhen: (p, c) =>
           c is CampsLoadingState ||
           c is CampsSuccessState ||
-          c is CampsErrorState,
+          c is CampsErrorState ||
+          c is TentActionLoadingState,
       builder: (context, state) {
         final cubit = AppCubit.get(context);
         final allTents = cubit.availableTents;
@@ -427,17 +431,11 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
     if (action == 'toggle') {
       final currentStatus = tent['status']?.toString() ?? 'متاحة';
       final newStatus = currentStatus == 'متاحة' ? 'غير متاحة' : 'متاحة';
-      cubit.updateCamp(
-        widget.camp['id'],
-        {},
+      cubit.updateTentStatus(
+        campId: widget.camp['id'],
+        tentDocId: tent['id'],
+        newStatus: newStatus,
       );
-      // تحديث حالة الخيمة — يمكن إضافة دالة updateTent في الـ Cubit
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('تم تغيير حالة الخيمة إلى: $newStatus'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ));
     } else if (action == 'delete') {
       _confirmDeleteTent(tent, cubit);
     }
@@ -474,11 +472,10 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
             ),
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('تم حذف الخيمة'),
-                backgroundColor: AppColors.statusStable,
-                behavior: SnackBarBehavior.floating,
-              ));
+              cubit.deleteTent(
+                campId: widget.camp['id'],
+                tentDocId: tent['id'],
+              );
             },
             child: const Text('حذف'),
           ),
@@ -530,15 +527,17 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
                   borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              if (tentIdController.text.trim().isEmpty) return;
+              final tentId = tentIdController.text.trim();
+              final capacity =
+                  int.tryParse(capacityController.text.trim()) ?? 4;
+              if (tentId.isEmpty) return;
+
               Navigator.pop(context);
-              // استدعاء دالة addTent في الـ Cubit عند إضافتها
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('تم إضافة الخيمة بنجاح'),
-                backgroundColor: AppColors.statusStable,
-                behavior: SnackBarBehavior.floating,
-              ));
-              cubit.getAvailableTents(widget.camp['id']);
+              cubit.addTent(
+                campId: widget.camp['id'],
+                tentId: tentId,
+                capacity: capacity,
+              );
             },
             child: const Text('إضافة'),
           ),
@@ -611,6 +610,18 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  void _showSnack(String message, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

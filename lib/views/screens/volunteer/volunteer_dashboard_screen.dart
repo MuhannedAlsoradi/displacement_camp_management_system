@@ -6,8 +6,6 @@ import '../../../utils/styles/colors.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
 import '../shared/add_familiy_screen.dart';
-import 'volunteer_register_family_screen.dart';
-import 'volunteer_aid_management_screen.dart';
 import 'volunteer_inquiry_screen.dart';
 
 class VolunteerDashboardScreen extends StatefulWidget {
@@ -187,10 +185,16 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
                     ),
                   ),
                   _actionButton(
-                    "مزامنة البيانات",
-                    Icons.sync,
-                    AppColors.success,
-                    onTap: () => AppCubit.get(context).syncPendingData(),
+                    cubit.hasPendingWrites
+                        ? "بيانات بانتظار المزامنة"
+                        : "البيانات متزامنة ✓",
+                    cubit.hasPendingWrites
+                        ? Icons.sync_problem_rounded
+                        : Icons.cloud_done_rounded,
+                    cubit.hasPendingWrites
+                        ? AppColors.warning
+                        : AppColors.success,
+                    onTap: () => _showSyncStatus(context, cubit),
                   ),
                 ],
               ),
@@ -337,7 +341,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "إجمالي المساعدات الموزعة",
+                "إجمالي النازحين",
                 style: TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 6),
@@ -537,5 +541,46 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
       default:
         return AppColors.success;
     }
+  }
+
+  void _showSyncStatus(BuildContext context, AppCubit cubit) {
+    final String message;
+    final Color color;
+    final IconData icon;
+
+    if (!cubit.isOnline) {
+      message =
+          'لا يوجد اتصال بالإنترنت — التغييرات محفوظة محلياً وستتزامن تلقائياً عند رجوع الاتصال';
+      color = AppColors.statusCritical;
+      icon = Icons.wifi_off_rounded;
+    } else if (cubit.hasPendingWrites) {
+      message = 'يوجد بيانات لسا بطور المزامنة مع الخادم...';
+      color = AppColors.warning;
+      icon = Icons.sync_rounded;
+    } else {
+      final timeStr = cubit.lastSyncTime != null
+          ? DateFormat('HH:mm').format(cubit.lastSyncTime!)
+          : '';
+      message =
+          'كل البيانات متزامنة ✓${timeStr.isNotEmpty ? ' — آخر مزامنة: $timeStr' : ''}';
+      color = AppColors.success;
+      icon = Icons.cloud_done_rounded;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }

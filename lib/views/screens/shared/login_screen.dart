@@ -343,21 +343,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 10),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   children: const [
-                  //     Text(
-                  //       'الدعم الفني',
-                  //       style: TextStyle(
-                  //         color: AppColors.textSecondary,
-                  //         fontSize: 18,
-                  //       ),
-                  //     ),
-                  //     SizedBox(width: 8),
-                  //     Icon(Icons.headset_mic, color: AppColors.textHint),
-                  //   ],
-                  // ),
-                  // const SizedBox(height: 15),
                   const Text(
                     'Gaza Camp Management System 2026 ©',
                     style: TextStyle(
@@ -366,27 +351,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          'دعم فني',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(Icons.shield, color: AppColors.success, size: 18),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 30),
                 ],
               ),

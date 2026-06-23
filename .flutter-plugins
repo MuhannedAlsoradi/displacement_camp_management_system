@@ -1,6 +1,7 @@
 # This is a generated file; do not edit or check into version control.
 cloud_firestore=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\cloud_firestore-4.14.0\\
 cloud_firestore_web=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\cloud_firestore_web-3.9.0\\
+connectivity_plus=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\connectivity_plus-5.0.2\\
 file_selector_linux=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\file_selector_linux-0.9.2+1\\
 file_selector_macos=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\file_selector_macos-0.9.4\\
 file_selector_windows=D:\\SDKs\\flutter_cache\\pub\\hosted\\pub.dev\\file_selector_windows-0.9.3+1\\

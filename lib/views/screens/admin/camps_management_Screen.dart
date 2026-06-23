@@ -6,6 +6,7 @@ import '../../../utils/styles/colors.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
 import 'add_camp_screen.dart';
+import 'tent_management_screen.dart';
 
 class CampsManagementScreen extends StatefulWidget {
   const CampsManagementScreen({super.key});
@@ -509,6 +510,41 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // ─── زر إدارة الخيام ──────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TentManagementScreen(camp: camp),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.holiday_village_rounded,
+                    size: 18, color: AppColors.primary),
+                label: const Text(
+                  'إدارة الخيام',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: BorderSide(color: AppColors.primary.withOpacity(0.4)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

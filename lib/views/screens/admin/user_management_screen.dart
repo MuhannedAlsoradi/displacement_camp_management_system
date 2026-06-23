@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
@@ -234,6 +236,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final role = user['role']?.toString() ?? '';
     final username = user['username']?.toString() ?? '';
     final email = user['email']?.toString() ?? '';
+    final familyId = user['familyId']?.toString() ?? '';
+
+    // ← الإصلاح: نحسب اسم الأسرة ديناميكياً من قائمة العائلات المحمّلة
+    // بدل الاعتماد على حقل familyName المخزّن وقت إنشاء الحساب
+    String familyName = '';
+    if (familyId.isNotEmpty) {
+      final matchedFamily = AppCubit.get(context).families.firstWhere(
+            (f) => f['id'] == familyId,
+            orElse: () => <String, dynamic>{},
+          );
+      familyName = matchedFamily['familyName']?.toString() ?? '';
+    }
+
     final color = _roleColor(role);
     final icon = _roleIcon(role);
 
@@ -279,20 +294,73 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     style: const TextStyle(
                         color: AppColors.textSecondary, fontSize: 12)),
                 const SizedBox(height: 5),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _roleArabic(role),
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600),
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _roleArabic(role),
+                        style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    // ← جديد: بادچ يوضح اسم الأسرة المرتبطة (لو الدور نازح)
+                    // ← بادچ يوضح اسم الأسرة المرتبطة (لو الدور نازح وله familyId)
+                    if (role == 'displaced' && familyId.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.textHint.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.family_restroom_rounded,
+                                size: 10, color: AppColors.textSecondary),
+                            const SizedBox(width: 3),
+                            Text(
+                              familyName.isNotEmpty
+                                  ? familyName
+                                  : 'أسرة مرتبطة',
+                              style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    // ← تحذير لو الحساب نازح بدون أي ربط بأسرة إطلاقاً
+                    if (role == 'displaced' && familyId.isEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusCritical.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'بدون أسرة!',
+                          style: TextStyle(
+                              color: AppColors.statusCritical,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -500,125 +568,368 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final passwordController = TextEditingController();
     String selectedRole = 'volunteer';
 
+    Map<String, dynamic>? selectedFamily;
+    String familySearch = '';
+    bool loadingFamilies = false;
+    List<Map<String, dynamic>> familiesCache = [];
+
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('إضافة مستخدم جديد',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _dialogField(
-                    controller: usernameController,
-                    label: 'اسم المستخدم',
-                    icon: Icons.person_outline),
-                const SizedBox(height: 10),
-                _dialogField(
-                    controller: emailController,
-                    label: 'البريد الإلكتروني',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress),
-                const SizedBox(height: 10),
-                _dialogField(
-                    controller: passwordController,
-                    label: 'كلمة المرور',
-                    icon: Icons.lock_outline,
-                    obscure: true),
-                const SizedBox(height: 12),
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text('الدور:',
-                      style: TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary)),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: ['volunteer', 'admin'].map((r) {
-                    final color = _roleColor(r);
-                    final isSelected = selectedRole == r;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedRole = r),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? color.withOpacity(0.1)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: isSelected ? color : AppColors.border),
+        builder: (ctx, setDialogState) {
+          if (familiesCache.isEmpty && !loadingFamilies) {
+            familiesCache = AppCubit.get(context).families;
+          }
+
+          final filteredFamilies = familySearch.isEmpty
+              ? familiesCache
+              : familiesCache.where((f) {
+                  return (f['familyName'] ?? '')
+                          .toString()
+                          .toLowerCase()
+                          .contains(familySearch.toLowerCase()) ||
+                      (f['representativeName'] ?? '')
+                          .toString()
+                          .toLowerCase()
+                          .contains(familySearch.toLowerCase());
+                }).toList();
+
+          return AlertDialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('إضافة مستخدم جديد',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dialogField(
+                      controller: usernameController,
+                      label: 'اسم المستخدم',
+                      icon: Icons.person_outline),
+                  const SizedBox(height: 10),
+                  _dialogField(
+                      controller: emailController,
+                      label: 'البريد الإلكتروني',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 10),
+                  _dialogField(
+                      controller: passwordController,
+                      label: 'كلمة المرور',
+                      icon: Icons.lock_outline,
+                      obscure: true),
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('الدور:',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: ['volunteer', 'admin', 'displaced'].map((r) {
+                      final color = _roleColor(r);
+                      final isSelected = selectedRole == r;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setDialogState(() {
+                            selectedRole = r;
+                            if (r != 'displaced') selectedFamily = null;
+                          }),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? color.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: isSelected ? color : AppColors.border),
+                            ),
+                            child: Text(
+                              _roleArabic(r),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: isSelected
+                                      ? color
+                                      : AppColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal),
+                            ),
                           ),
-                          child: Text(
-                            _roleArabic(r),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: isSelected
-                                    ? color
-                                    : AppColors.textSecondary,
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  if (selectedRole == 'displaced') ...[
+                    const SizedBox(height: 14),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text('اختر الأسرة المرتبطة:',
+                          style: TextStyle(
+                              fontSize: 13, color: AppColors.textSecondary)),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.backgroundPage,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.border.withOpacity(0.5)),
+                      ),
+                      child: TextField(
+                        textDirection: TextDirection.rtl,
+                        onChanged: (v) =>
+                            setDialogState(() => familySearch = v),
+                        decoration: const InputDecoration(
+                          hintText: 'ابحث باسم الأسرة...',
+                          hintStyle: TextStyle(
+                              color: AppColors.textHint, fontSize: 13),
+                          prefixIcon: Icon(Icons.search_rounded,
+                              color: AppColors.textHint, size: 18),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (familiesCache.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'لا توجد أسر مسجّلة بعد — سجّل الأسرة أولاً من شاشة العائلات',
+                          style:
+                              TextStyle(color: AppColors.warning, fontSize: 11),
+                        ),
+                      )
+                    else
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 160),
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundPage,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: AppColors.border.withOpacity(0.4)),
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (int index = 0;
+                                  index < filteredFamilies.length;
+                                  index++) ...[
+                                if (index > 0)
+                                  const Divider(
+                                      height: 1, color: AppColors.border),
+                                Builder(builder: (context) {
+                                  final fam = filteredFamilies[index];
+                                  final isSel =
+                                      selectedFamily?['id'] == fam['id'];
+                                  return GestureDetector(
+                                    onTap: () => setDialogState(
+                                        () => selectedFamily = fam),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: isSel
+                                            ? AppColors.primary
+                                                .withOpacity(0.08)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.family_restroom_rounded,
+                                            size: 16,
+                                            color: isSel
+                                                ? AppColors.primary
+                                                : AppColors.textHint,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  fam['familyName'] ?? '',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: isSel
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
+                                                    color: isSel
+                                                        ? AppColors.primary
+                                                        : AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  fam['campName'] ?? '',
+                                                  style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color:
+                                                          AppColors.textHint),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (isSel)
+                                            const Icon(
+                                                Icons.check_circle_rounded,
+                                                color: AppColors.primary,
+                                                size: 16),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء',
-                  style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                    if (selectedFamily != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded,
+                                color: AppColors.primary, size: 14),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'مرتبط بأسرة: ${selectedFamily!['familyName']}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppColors.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
               ),
-              onPressed: () async {
-                if (usernameController.text.trim().isEmpty ||
-                    emailController.text.trim().isEmpty) return;
-                Navigator.pop(context);
-                try {
-                  await _db.collection('users').add({
-                    'username': usernameController.text.trim(),
-                    'email': emailController.text.trim(),
-                    'role': selectedRole,
-                    'createdAt': FieldValue.serverTimestamp(),
-                  });
-                  _loadUsers();
-                  if (mounted) {
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('إلغاء',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () async {
+                  final username = usernameController.text.trim();
+                  final email = emailController.text.trim();
+                  final password = passwordController.text.trim();
+
+                  if (username.isEmpty || email.isEmpty) return;
+                  if (password.length < 6) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('تم إضافة المستخدم بنجاح'),
-                      backgroundColor: AppColors.statusStable,
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('فشل الإضافة: $e'),
+                      content: Text('كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
                       backgroundColor: AppColors.statusCritical,
                     ));
+                    return;
                   }
-                }
-              },
-              child: const Text('إضافة'),
-            ),
-          ],
-        ),
+
+                  if (selectedRole == 'displaced' && selectedFamily == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('يجب اختيار الأسرة المرتبطة بهذا الحساب'),
+                      backgroundColor: AppColors.statusCritical,
+                    ));
+                    return;
+                  }
+
+                  Navigator.pop(context);
+
+                  FirebaseApp? tempApp;
+                  try {
+                    tempApp = await Firebase.initializeApp(
+                      name:
+                          'tempUserCreation_${DateTime.now().millisecondsSinceEpoch}',
+                      options: Firebase.app().options,
+                    );
+                    final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+
+                    final cred = await tempAuth.createUserWithEmailAndPassword(
+                      email: email,
+                      password: password,
+                    );
+
+                    final userData = <String, dynamic>{
+                      'username': username,
+                      'email': email,
+                      'role': selectedRole,
+                      'createdAt': FieldValue.serverTimestamp(),
+                    };
+
+                    if (selectedRole == 'displaced' && selectedFamily != null) {
+                      userData['familyId'] = selectedFamily!['id'];
+                      userData['familyName'] =
+                          selectedFamily!['familyName'] ?? '';
+                    }
+
+                    await _db
+                        .collection('users')
+                        .doc(cred.user!.uid)
+                        .set(userData);
+
+                    await tempAuth.signOut();
+                    _loadUsers();
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('تم إضافة المستخدم بنجاح'),
+                        backgroundColor: AppColors.statusStable,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                    }
+                  } on FirebaseAuthException catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(_addUserAuthError(e.code)),
+                        backgroundColor: AppColors.statusCritical,
+                      ));
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('فشل الإضافة: $e'),
+                        backgroundColor: AppColors.statusCritical,
+                      ));
+                    }
+                  } finally {
+                    await tempApp?.delete();
+                  }
+                },
+                child: const Text('إضافة'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -769,6 +1080,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return 'نازح';
       default:
         return role;
+    }
+  }
+
+  String _addUserAuthError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'البريد الإلكتروني مستخدم مسبقاً';
+      case 'invalid-email':
+        return 'البريد الإلكتروني غير صالح';
+      case 'weak-password':
+        return 'كلمة المرور ضعيفة جداً';
+      default:
+        return 'حدث خطأ أثناء إنشاء الحساب';
     }
   }
 }

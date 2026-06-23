@@ -31,26 +31,26 @@ class _VolunteerInquiryScreenState extends State<VolunteerInquiryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPage,
-      appBar: AppCubit.get(context).currentIndex != 3
-          ? AppBar(
-              backgroundColor: AppColors.backgroundCard,
-              elevation: 0,
-              title: const Text(
-                'استفسار عن العائلات',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              centerTitle: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios,
-                    color: AppColors.textPrimary, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-            )
-          : null,
+      // appBar: AppCubit.get(context).currentIndex != 3
+      // ? AppBar(
+      //     backgroundColor: AppColors.backgroundCard,
+      //     elevation: 0,
+      //     title: const Text(
+      //       'استفسار عن العائلات',
+      //       style: TextStyle(
+      //         color: AppColors.textPrimary,
+      //         fontWeight: FontWeight.bold,
+      //         fontSize: 18,
+      //       ),
+      //     ),
+      //     centerTitle: true,
+      //     leading: IconButton(
+      //       icon: const Icon(Icons.arrow_back_ios,
+      //           color: AppColors.textPrimary, size: 20),
+      //       onPressed: () => Navigator.pop(context),
+      //     ),
+      //   )
+      // : null,
       body: Column(
         children: [
           /// شريط البحث

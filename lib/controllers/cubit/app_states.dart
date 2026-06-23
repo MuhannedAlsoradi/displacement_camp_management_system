@@ -115,3 +115,48 @@ class IdpFamilyErrorState extends AppStates {
 
 // Notifications
 class NotificationsSuccessState extends AppStates {}
+
+// Tents
+class TentActionLoadingState extends AppStates {}
+
+class TentActionSuccessState extends AppStates {
+  final String message;
+  TentActionSuccessState(this.message);
+}
+
+class TentActionErrorState extends AppStates {
+  final String error;
+  TentActionErrorState(this.error);
+}
+
+// Resources / Aid Types
+class ResourcesSuccessState extends AppStates {}
+
+class ResourcesErrorState extends AppStates {
+  final String error;
+  ResourcesErrorState(this.error);
+}
+
+class ResourceActionLoadingState extends AppStates {}
+
+class ResourceActionSuccessState extends AppStates {
+  final String message;
+  ResourceActionSuccessState(this.message);
+}
+
+class ResourceActionErrorState extends AppStates {
+  final String error;
+  ResourceActionErrorState(this.error);
+}
+
+class AidSuccessState extends AppStates {}
+
+class ConnectivityChangedState extends AppStates {
+  final bool isOnline;
+  ConnectivityChangedState(this.isOnline);
+}
+
+class SyncStatusChangedState extends AppStates {
+  final bool hasPendingWrites;
+  SyncStatusChangedState(this.hasPendingWrites);
+}

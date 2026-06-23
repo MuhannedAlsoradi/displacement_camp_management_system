@@ -242,20 +242,42 @@ class _IdpProfileScreenState extends State<IdpProfileScreen> {
     );
   }
 
-  ListTile _dataItem2({
+  Widget _dataItem2({
     required IconData icon,
     required String value,
     required String label,
   }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.textHint, size: 20),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 95,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                value,
+                textAlign: TextAlign.left,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -286,26 +308,28 @@ class _IdpProfileScreenState extends State<IdpProfileScreen> {
             child: Icon(icon, color: iconColor, size: 18),
           ),
           const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textHint,
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

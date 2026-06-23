@@ -2,11 +2,15 @@ import 'package:displacement_camp_management_system/views/screens/admin/add_camp
 import 'package:displacement_camp_management_system/views/screens/shared/add_familiy_screen.dart';
 import 'package:displacement_camp_management_system/views/screens/shared/aid_distribution_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:displacement_camp_management_system/views/screens/admin/resource_management_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../utils/styles/colors.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
+import 'package:displacement_camp_management_system/views/screens/admin/user_management_screen.dart';
+
+import '../../widgets/connectivit_banner.dart';
 
 class DashboardAdminScreen extends StatefulWidget {
   const DashboardAdminScreen({super.key});
@@ -97,7 +101,8 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── الرأس ─────────────────────────────────────
+                const ConnectivityBanner(),
+                const SizedBox(height: 8),
                 _buildHeader(cubit.currentUsername ?? 'مسؤول النظام'),
 
                 const SizedBox(height: 20),
@@ -224,13 +229,27 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                           )),
                     ),
                     _actionButton(
-                      'التقارير',
-                      Icons.bar_chart_rounded,
+                      'إدارة المستخدمين',
+                      Icons.manage_accounts_rounded,
                       AppColors.primary,
                       onTap: () {
-                        // الانتقال إلى تبويب التقارير في HomeLayout
-                        // يمكن استخدام AppCubit.get(context).changeAdminIndex(3)
-                        // حسب ترتيب التبويبات في HomeLayout
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const UserManagementScreen()),
+                        );
+                      },
+                    ),
+                    _actionButton(
+                      'إدارة الموارد',
+                      Icons.inventory_2_rounded,
+                      AppColors.secondary, // أو أي لون تحب تستخدمه
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ResourceManagementScreen()),
+                        );
                       },
                     ),
                   ],

@@ -7,7 +7,12 @@ import '../../../utils/enums/user_role.dart';
 import '../../../utils/styles/colors.dart';
 
 class SharedNotificationsScreen extends StatefulWidget {
-  const SharedNotificationsScreen({super.key});
+  /// لو null، القرار بيصير تلقائياً حسب دور المستخدم
+  /// (الأدمن = AppBar ظاهر لأنها مستقلة، غيره = بدون AppBar لأنها جوه Tab).
+  /// لو القيمة محددة بشكل صريح من الخارج، بتفرض نفسها بكل الحالات.
+  final bool? showAppBar;
+
+  const SharedNotificationsScreen({super.key, this.showAppBar});
 
   @override
   State<SharedNotificationsScreen> createState() =>
@@ -21,10 +26,10 @@ class _SharedNotificationsScreenState extends State<SharedNotificationsScreen> {
       builder: (context, state) {
         final cubit = AppCubit.get(context);
         final role = cubit.currentRole;
-
+        final shouldShowAppBar = widget.showAppBar ?? (role == UserRole.admin);
         return Scaffold(
           backgroundColor: AppColors.backgroundPage,
-          // appBar: _buildAppBar(context, cubit, role),
+          appBar: shouldShowAppBar ? _buildAppBar(context, cubit, role) : null,
           body: _buildBody(context, cubit, role),
         );
       },

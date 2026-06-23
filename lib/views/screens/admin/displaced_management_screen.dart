@@ -65,13 +65,20 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
       listenWhen: (p, c) =>
-          c is DeleteFamilySuccessState || c is DeleteFamilyErrorState,
+          c is DeleteFamilySuccessState ||
+          c is DeleteFamilyErrorState ||
+          c is TentActionSuccessState ||
+          c is TentActionErrorState,
       listener: (context, state) {
         if (state is DeleteFamilySuccessState) {
           _showSnack('تم حذف العائلة بنجاح', AppColors.statusStable);
           AppCubit.get(context).getFamilies();
         } else if (state is DeleteFamilyErrorState) {
           _showSnack('فشل الحذف: ${state.error}', AppColors.statusCritical);
+        } else if (state is TentActionSuccessState) {
+          _showSnack(state.message, AppColors.statusStable);
+        } else if (state is TentActionErrorState) {
+          _showSnack(state.error, AppColors.statusCritical);
         }
       },
       buildWhen: (p, c) =>
@@ -160,6 +167,7 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
           familyData: f,
           onDelete: () => _confirmDelete(f, cubit),
           onDetails: () => _showFamilyDetails(f),
+          onAssignTent: () => _assignTentDialog(f, cubit),
         );
       },
     );
@@ -202,11 +210,147 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
                 family['id'],
                 family['campId'] ?? '',
                 family['membersCount'] as int? ?? 0,
+                tentDocId: family['tentDocId']?.toString() ?? '',
               );
             },
             child: const Text('حذف'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _assignTentDialog(Map<String, dynamic> family, AppCubit cubit) async {
+    final campId = family['campId']?.toString() ?? '';
+    if (campId.isEmpty) {
+      _showSnack('هذه العائلة غير مرتبطة بمخيم', AppColors.statusCritical);
+      return;
+    }
+
+    await cubit.getAvailableTents(campId);
+    final currentTentDocId = family['tentDocId']?.toString() ?? '';
+    final allTents = cubit.availableTents;
+    final selectableTents = allTents.where((t) {
+      final status = t['status']?.toString() ?? '';
+      return status == 'متاحة' || t['id'] == currentTentDocId;
+    }).toList();
+
+    if (!mounted) return;
+
+    String? selectedTentDocId =
+        currentTentDocId.isNotEmpty ? currentTentDocId : null;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'تعيين خيمة: ${family['familyName'] ?? ''}',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: selectableTents.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      'لا توجد خيام متاحة بهذا المخيم حالياً',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: selectableTents.map((t) {
+                      final tentDocId = t['id'] as String;
+                      final tentLabel = t['tentId']?.toString() ?? '';
+                      final isCurrent = tentDocId == currentTentDocId;
+                      final isSelected = selectedTentDocId == tentDocId;
+                      return GestureDetector(
+                        onTap: () =>
+                            setDialogState(() => selectedTentDocId = tentDocId),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withOpacity(0.08)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.holiday_village_outlined,
+                                  size: 18,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textHint),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'خيمة رقم: $tentLabel'
+                                  '${isCurrent ? ' (الحالية)' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(Icons.check_circle,
+                                    color: AppColors.primary, size: 18),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: selectedTentDocId == null
+                  ? null
+                  : () {
+                      final chosen = selectableTents
+                          .firstWhere((t) => t['id'] == selectedTentDocId);
+                      Navigator.pop(context);
+                      cubit.assignTentToFamily(
+                        familyId: family['id'],
+                        campId: campId,
+                        familyName: family['familyName']?.toString() ?? '',
+                        newTentDocId: selectedTentDocId!,
+                        newTentId: chosen['tentId']?.toString() ?? '',
+                        oldTentDocId: currentTentDocId,
+                      );
+                    },
+              child: const Text('تعيين'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -555,11 +699,13 @@ class _FamilyCard extends StatelessWidget {
   final Map<String, dynamic> familyData;
   final VoidCallback onDelete;
   final VoidCallback onDetails;
+  final VoidCallback onAssignTent;
 
   const _FamilyCard({
     required this.familyData,
     required this.onDelete,
     required this.onDetails,
+    required this.onAssignTent,
   });
 
   String get nationalId => familyData['nationalId']?.toString() ?? '';
@@ -685,6 +831,7 @@ class _FamilyCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12)),
               onSelected: (value) {
                 if (value == 'details') onDetails();
+                if (value == 'assign_tent') onAssignTent();
                 if (value == 'delete') onDelete();
               },
               itemBuilder: (_) => [
@@ -695,6 +842,15 @@ class _FamilyCard extends StatelessWidget {
                         size: 18, color: AppColors.primary),
                     SizedBox(width: 8),
                     Text('عرض التفاصيل'),
+                  ]),
+                ),
+                const PopupMenuItem(
+                  value: 'assign_tent',
+                  child: Row(children: [
+                    Icon(Icons.holiday_village_outlined,
+                        size: 18, color: AppColors.secondary),
+                    SizedBox(width: 8),
+                    Text('تعيين خيمة'),
                   ]),
                 ),
                 PopupMenuItem(

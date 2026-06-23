@@ -43,7 +43,7 @@ class AppColors {
   static const Color neutral900 = Color(0xFF2C2C2A);
 
   static const Color background = Color(0xFFFFFFFF);
-  static const Color backgroundPage = neutral50;
+  static const Color backgroundPage = Color(0xFFF5F7FA);
   static const Color backgroundCard = Color(0xFFFFFFFF);
   static const Color surfaceSecondary = neutral50;
   static const Color border = neutral100;

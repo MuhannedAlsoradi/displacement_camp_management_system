@@ -5,7 +5,11 @@ import '../../../../controllers/cubit/app_states.dart';
 import '../../../../utils/styles/colors.dart';
 
 class AidDistributionScreen extends StatefulWidget {
-  const AidDistributionScreen({super.key});
+  /// true: تظهر AppBar خاصة فيها (لما تُفتح Standalone عبر Navigator.push)
+  /// false: بدون AppBar (لما تكون Tab جوه VolunteerLayoutScreen)
+  final bool showAppBar;
+
+  const AidDistributionScreen({super.key, this.showAppBar = true});
 
   @override
   State<AidDistributionScreen> createState() => _AidDistributionScreenState();
@@ -40,6 +44,44 @@ class _AidDistributionScreenState extends State<AidDistributionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final tabBarView = TabBarView(
+      controller: _tabController,
+      children: [
+        _DistributeTab(aidTypes: _aidTypes),
+        _HistoryTab(
+            searchQuery: _searchQuery,
+            onSearchChanged: (v) => setState(() => _searchQuery = v)),
+      ],
+    );
+
+    final tabBar = TabBar(
+      controller: _tabController,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: AppColors.textHint,
+      indicatorColor: AppColors.primary,
+      indicatorWeight: 3,
+      tabs: const [
+        Tab(text: 'توزيع جديد'),
+        Tab(text: 'سجل التوزيع'),
+      ],
+    );
+
+    if (!widget.showAppBar) {
+      // بدون AppBar — فقط TabBar + المحتوى (لما تكون Tab جوه VolunteerLayoutScreen)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPage,
+        body: Column(
+          children: [
+            Container(
+              color: AppColors.backgroundCard,
+              child: tabBar,
+            ),
+            Expanded(child: tabBarView),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.backgroundPage,
       appBar: AppBar(
@@ -61,27 +103,9 @@ class _AidDistributionScreenState extends State<AidDistributionScreen>
           ),
         ),
         centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textHint,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'توزيع جديد'),
-            Tab(text: 'سجل التوزيع'),
-          ],
-        ),
+        bottom: tabBar,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _DistributeTab(aidTypes: _aidTypes),
-          _HistoryTab(
-              searchQuery: _searchQuery,
-              onSearchChanged: (v) => setState(() => _searchQuery = v)),
-        ],
-      ),
+      body: tabBarView,
     );
   }
 }
