@@ -47,10 +47,10 @@ class PdfReportService {
 
     final now = DateFormat('yyyy/MM/dd  HH:mm').format(DateTime.now());
 
-    final baseStyle = pw.TextStyle(font: arabicFont, fontFallback: []);
+    final baseStyle = pw.TextStyle(font: arabicFont, fontFallback: const []);
     final boldStyle = pw.TextStyle(
       font: arabicFontBold,
-      fontFallback: [],
+      fontFallback: const [],
       fontWeight: pw.FontWeight.bold,
     );
 

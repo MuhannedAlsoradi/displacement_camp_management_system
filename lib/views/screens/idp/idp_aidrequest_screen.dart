@@ -215,7 +215,7 @@ class _IdpAidRequestScreenState extends State<IdpAidRequestScreen> {
                           ),
                         ),
                         if (isSelected)
-                          Icon(Icons.check_circle,
+                          const Icon(Icons.check_circle,
                               color: AppColors.primary, size: 16),
                       ],
                     ),
@@ -247,15 +247,15 @@ class _IdpAidRequestScreenState extends State<IdpAidRequestScreen> {
                 fillColor: AppColors.backgroundCard,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppColors.border, width: 0.5),
+                  borderSide: const BorderSide(color: AppColors.border, width: 0.5),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppColors.border, width: 0.5),
+                  borderSide: const BorderSide(color: AppColors.border, width: 0.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppColors.primary, width: 1),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1),
                 ),
               ),
             ),

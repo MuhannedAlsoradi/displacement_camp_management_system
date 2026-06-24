@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +9,41 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:displacement_camp_management_system/controllers/cubit/app_states.dart';
 import 'package:displacement_camp_management_system/utils/enums/user_role.dart';
+import 'package:http/http.dart' as http;
+
+// ════════════════════════════════════════════════════════
+//  Top-level function — لازم تكون خارج الـ class
+//  عشان تشتغل داخل Isolate منفصل
+// ════════════════════════════════════════════════════════
+Future<String?> _uploadToCloudinaryIsolate(Map<String, dynamic> params) async {
+  final cloudName = params['cloudName'] as String;
+  final uploadPreset = params['uploadPreset'] as String;
+  final bytes = params['bytes'] as List<int>;
+  final fileName = params['fileName'] as String;
+
+  final url =
+      Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+  final request = http.MultipartRequest('POST', url)
+    ..fields['upload_preset'] = uploadPreset
+    ..files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: fileName,
+    ));
+
+  final streamedResponse =
+      await request.send().timeout(const Duration(seconds: 30));
+  final response = await http.Response.fromStream(streamedResponse);
+
+  if (response.statusCode == 200) {
+    final jsonResponse = jsonDecode(response.body);
+    return jsonResponse['secure_url'] as String?;
+  } else {
+    throw Exception(
+        'فشل رفع الصورة [${response.statusCode}]: ${response.body}');
+  }
+}
 
 class AppCubit extends Cubit<AppStates> {
   AppCubit() : super(InitState()) {
@@ -67,10 +104,10 @@ class AppCubit extends Cubit<AppStates> {
   StreamSubscription? _familiesSubscription;
   StreamSubscription? _activitiesSubscription;
   StreamSubscription? _aidSubscription;
-  StreamSubscription? _notificationsSubscription; // ← جديد
-  StreamSubscription? _familyNotificationsSubscription; // ← جديد للنازحين
-  StreamSubscription? _campNotificationsSubscription; // ← جديد للنازحين
-  StreamSubscription? _resourcesSubscription; // ← جديد
+  StreamSubscription? _notificationsSubscription;
+  StreamSubscription? _familyNotificationsSubscription;
+  StreamSubscription? _campNotificationsSubscription;
+  StreamSubscription? _resourcesSubscription;
 
   // ════════════════════════════════════════════════════════
   //  Navigation
@@ -134,11 +171,11 @@ class AppCubit extends Cubit<AppStates> {
       switch (currentRole!) {
         case UserRole.admin:
           startAllListeners();
-          listenToNotifications(); // ← جديد
+          listenToNotifications();
           break;
         case UserRole.volunteer:
           startVolunteerListeners();
-          listenToNotifications(); // ← جديد
+          listenToNotifications();
           break;
         case UserRole.displaced:
           final familyId = userData['familyId'] as String?;
@@ -166,7 +203,7 @@ class AppCubit extends Cubit<AppStates> {
     currentUser = null;
     currentUsername = null;
     currentRole = null;
-    notifications = []; // ← مسح الإشعارات عند تسجيل الخروج
+    notifications = [];
     emit(LogoutSuccessState());
   }
 
@@ -192,16 +229,15 @@ class AppCubit extends Cubit<AppStates> {
     listenToFamilies();
     listenToActivities();
     listenToAid();
-    listenToResources(); // ← جديد
+    listenToResources();
   }
 
   void startVolunteerListeners() {
     listenToFamilies();
     listenToAid();
-    listenToResources(); // ← جديد
+    listenToResources();
   }
 
-  /// مزامنة البيانات المعلّقة (offline → online)
   Future<void> syncPendingData() async {
     emit(SyncLoadingState());
     try {
@@ -212,17 +248,16 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
-  /// تُستدعى عند تسجيل الخروج أو إغلاق التطبيق
   void stopAllListeners() {
     _campsSubscription?.cancel();
     _familiesSubscription?.cancel();
     _activitiesSubscription?.cancel();
     _aidSubscription?.cancel();
     _familyAidSubscription?.cancel();
-    _notificationsSubscription?.cancel(); // ← جديد
-    _familyNotificationsSubscription?.cancel(); // ← جديد للنازحين
-    _campNotificationsSubscription?.cancel(); // ← جديد للنازحين
-    _resourcesSubscription?.cancel(); // ← جديد
+    _notificationsSubscription?.cancel();
+    _familyNotificationsSubscription?.cancel();
+    _campNotificationsSubscription?.cancel();
+    _resourcesSubscription?.cancel();
   }
 
   @override
@@ -244,10 +279,10 @@ class AppCubit extends Cubit<AppStates> {
     _campsSubscription = _db
         .collection('camps')
         .orderBy('createdAt', descending: true)
-        .snapshots(includeMetadataChanges: true) // ← جديد
+        .snapshots(includeMetadataChanges: true)
         .listen(
       (snapshot) {
-        _trackPendingWrites(snapshot, 'camps'); // ← جديد
+        _trackPendingWrites(snapshot, 'camps');
         camps = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -271,20 +306,11 @@ class AppCubit extends Cubit<AppStates> {
     try {
       String imageUrl = '';
       if (imageFile != null) {
-        final fileName =
-            '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-        final ref = _storage.ref('images/camps/$fileName');
-
-        // ✅ استخدم UploadTask بشكل صريح لمعرفة سبب الفشل
-        final UploadTask uploadTask = ref.putFile(imageFile);
-        final TaskSnapshot snapshot = await uploadTask;
-
-        // ✅ تأكد أن الرفع نجح قبل جلب الرابط
-        if (snapshot.state == TaskState.success) {
-          imageUrl = await snapshot.ref.getDownloadURL();
-        } else {
-          throw Exception('فشل رفع الصورة: ${snapshot.state}');
+        final uploadedUrl = await uploadImageToCloudinary(imageFile);
+        if (uploadedUrl == null) {
+          throw Exception('فشل رفع الصورة إلى Cloudinary');
         }
+        imageUrl = uploadedUrl;
       }
 
       await _db.collection('camps').add({
@@ -303,7 +329,6 @@ class AppCubit extends Cubit<AppStates> {
         type: 'camp',
       );
 
-      // ← جديد: إشعار كل الأدمنز بإضافة المخيم
       await notifyAllAdmins(
         title: 'مخيم جديد',
         message: 'تم إضافة مخيم "$name" بسعة $capacity فرد',
@@ -313,19 +338,45 @@ class AppCubit extends Cubit<AppStates> {
 
       emit(AddCampSuccessState());
     } on FirebaseException catch (e) {
-      // ✅ سيظهر كود الخطأ الحقيقي
       emit(AddCampErrorState('Storage Error [${e.code}]: ${e.message}'));
     } catch (e) {
       emit(AddCampErrorState(e.toString()));
     }
   }
 
-  Future<void> updateCamp(String campId, Map<String, dynamic> data) async {
+  Future<void> updateCamp({
+    required String campId,
+    required String name,
+    required String location,
+    required int capacity,
+    required String status,
+    File? imageFile,
+    String? existingImageUrl,
+  }) async {
+    emit(UpdateCampLoadingState());
     try {
-      await _db.collection('camps').doc(campId).update(data);
+      String imageUrl = existingImageUrl ?? '';
+      if (imageFile != null) {
+        final uploadedUrl = await uploadImageToCloudinary(imageFile);
+        if (uploadedUrl == null) {
+          throw Exception('فشل رفع الصورة إلى Cloudinary');
+        }
+        imageUrl = uploadedUrl;
+      }
+
+      await _db.collection('camps').doc(campId).update({
+        'name': name,
+        'location': location,
+        'capacity': capacity,
+        'status': status,
+        'image': imageUrl,
+      });
+
       emit(UpdateCampSuccessState());
+    } on FirebaseException catch (e) {
+      emit(UpdateCampErrorState('Storage Error [${e.code}]: ${e.message}'));
     } catch (e) {
-      emit(CampsErrorState(e.toString()));
+      emit(UpdateCampErrorState(e.toString()));
     }
   }
 
@@ -460,10 +511,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   // ════════════════════════════════════════════════════════
-  //  Families & Displaced — Real-time
-  // ════════════════════════════════════════════════════════
-  // ════════════════════════════════════════════════════════
-  //  Resources / Aid Types — تعريف الأدمن لأنواع المساعدات والكميات
+  //  Resources / Aid Types
   // ════════════════════════════════════════════════════════
   List<Map<String, dynamic>> resources = [];
 
@@ -473,10 +521,10 @@ class AppCubit extends Cubit<AppStates> {
     _resourcesSubscription = _db
         .collection('resources')
         .orderBy('createdAt', descending: true)
-        .snapshots(includeMetadataChanges: true) // ← جديد
+        .snapshots(includeMetadataChanges: true)
         .listen(
       (snapshot) {
-        _trackPendingWrites(snapshot, 'resources'); // ← جديد
+        _trackPendingWrites(snapshot, 'resources');
         resources = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -555,10 +603,10 @@ class AppCubit extends Cubit<AppStates> {
     _familiesSubscription = _db
         .collection('families')
         .orderBy('createdAt', descending: true)
-        .snapshots(includeMetadataChanges: true) // ← جديد
+        .snapshots(includeMetadataChanges: true)
         .listen(
       (snapshot) {
-        _trackPendingWrites(snapshot, 'families'); // ← جديد
+        _trackPendingWrites(snapshot, 'families');
         families = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -569,7 +617,6 @@ class AppCubit extends Cubit<AppStates> {
     );
   }
 
-  /// الاستدعاء اليدوي مع دعم البحث (محلي — لا استدعاء Firestore إضافي)
   Future<void> getFamilies({String? searchQuery}) async {
     if (_familiesSubscription == null) {
       listenToFamilies();
@@ -632,7 +679,6 @@ class AppCubit extends Cubit<AppStates> {
         'current': FieldValue.increment(membersCount),
       });
 
-      // ← معدّل: هلق منحفظ اسم العائلة على الخيمة المعيّنة، مش بس الحالة
       if (tentDocId.isNotEmpty) {
         final tentRef = _db
             .collection('camps')
@@ -654,7 +700,6 @@ class AppCubit extends Cubit<AppStates> {
         type: 'register',
       );
 
-      // ← جديد: إشعار كل الأدمنز بتسجيل العائلة
       await notifyAllAdmins(
         title: 'عائلة جديدة',
         message:
@@ -677,8 +722,6 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
-  /// تعيين/تغيير خيمة لعائلة مسجّلة مسبقاً
-  /// بتحرر الخيمة القديمة (لو موجودة) وبتحجز الجديدة وبتحدّث بيانات العائلة
   Future<void> assignTentToFamily({
     required String familyId,
     required String campId,
@@ -725,7 +768,6 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
-  // ← معدّل: هلق بتقبل tentDocId اختياري، ولو موجود بتحرر الخيمة (ترجعها متاحة وتمسح اسم العائلة)
   Future<void> deleteFamily(
     String familyId,
     String campId,
@@ -785,7 +827,6 @@ class AppCubit extends Cubit<AppStates> {
         return;
       }
 
-      // ← جديد: تحديث المخزون المرتبط بنوع المساعدة (لو معرّف بالنظام)
       final resourceQuery = await _db
           .collection('resources')
           .where('aidType', isEqualTo: aidType)
@@ -822,7 +863,6 @@ class AppCubit extends Cubit<AppStates> {
         type: 'aid',
       );
 
-      // ← جديد: إشعار كل الأدمنز بعملية التوزيع
       await notifyAllAdmins(
         title: 'توزيع مساعدة',
         message: 'تم توزيع $quantity وحدة من "$aidType" لعائلة $familyName',
@@ -831,7 +871,6 @@ class AppCubit extends Cubit<AppStates> {
         familyId: familyId,
       );
 
-      // ← جديد: إشعار حساب الأسرة نفسها (لو مرتبطة بحساب مستخدم)
       await notifyFamilyUser(
         familyId: familyId,
         title: 'تم توزيع مساعدات جديدة',
@@ -918,7 +957,6 @@ class AppCubit extends Cubit<AppStates> {
     return null;
   }
 
-  /// يبدأ الاستماع لإشعارات المستخدم الحالي فقط
   void listenToNotifications() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -931,19 +969,17 @@ class AppCubit extends Cubit<AppStates> {
       final familyId = currentFamily?['id'] as String? ?? '';
       final campName = currentFamily?['campName'] as String? ?? '';
 
-      // بالنسبة للنازح، نحتاج دمج الإشعارات الخاصة به، والخاصة بعائلته، والخاصة بمخيمه.
       final Map<String, Map<String, dynamic>> mergedNotifications = {};
 
       void updateListAndEmit() {
         notifications = mergedNotifications.values.toList();
-        
-        // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
+
         notifications.sort((a, b) {
           final aTime = _parseCreatedAt(a['createdAt']);
           final bTime = _parseCreatedAt(b['createdAt']);
-          
+
           if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return -1; // الإشعار الجديد بدون تاريخ يكون بالأعلى
+          if (aTime == null) return -1;
           if (bTime == null) return 1;
           return bTime.compareTo(aTime);
         });
@@ -985,7 +1021,6 @@ class AppCubit extends Cubit<AppStates> {
         };
       }
 
-      // 1. اشتراك الإشعارات الموجهة للمستخدم مباشرة
       _notificationsSubscription = _db
           .collection('notifications')
           .where('userId', isEqualTo: uid)
@@ -997,7 +1032,6 @@ class AppCubit extends Cubit<AppStates> {
         updateListAndEmit();
       }, onError: (_) {});
 
-      // 2. اشتراك الإشعارات الموجهة لعائلة المستخدم
       if (familyId.isNotEmpty) {
         _familyNotificationsSubscription = _db
             .collection('notifications')
@@ -1011,7 +1045,6 @@ class AppCubit extends Cubit<AppStates> {
         }, onError: (_) {});
       }
 
-      // 3. اشتراك إشعارات المخيم العامة
       if (campName.isNotEmpty) {
         _campNotificationsSubscription = _db
             .collection('notifications')
@@ -1019,7 +1052,7 @@ class AppCubit extends Cubit<AppStates> {
             .snapshots()
             .listen((snapshot) {
           for (final doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             final fid = data['familyId'] as String? ?? '';
             if (fid.isEmpty) {
               mergedNotifications[doc.id] = parseDoc(doc);
@@ -1029,7 +1062,6 @@ class AppCubit extends Cubit<AppStates> {
         }, onError: (_) {});
       }
     } else {
-      // بالنسبة للمشرف والمتطوع، فقط الإشعارات الموجهة لهم مباشرة
       _notificationsSubscription = _db
           .collection('notifications')
           .where('userId', isEqualTo: uid)
@@ -1070,11 +1102,10 @@ class AppCubit extends Cubit<AppStates> {
             };
           }).toList();
 
-          // ترتيب الإشعارات تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً)
           notifications.sort((a, b) {
             final aTime = _parseCreatedAt(a['createdAt']);
             final bTime = _parseCreatedAt(b['createdAt']);
-            
+
             if (aTime == null && bTime == null) return 0;
             if (aTime == null) return -1;
             if (bTime == null) return 1;
@@ -1088,11 +1119,9 @@ class AppCubit extends Cubit<AppStates> {
     }
   }
 
-  /// عدد الإشعارات غير المقروءة — مفيد لشارة الـ badge
   int get unreadNotificationsCount =>
       notifications.where((n) => n['isRead'] == false).length;
 
-  /// تعليم إشعار واحد كمقروء
   Future<void> markNotificationAsRead(String notifId) async {
     try {
       await _db
@@ -1102,7 +1131,6 @@ class AppCubit extends Cubit<AppStates> {
     } catch (_) {}
   }
 
-  /// تعليم جميع الإشعارات كمقروءة دفعةً واحدة
   Future<void> markAllNotificationsAsRead() async {
     try {
       final unread = notifications.where((n) => n['isRead'] == false).toList();
@@ -1115,7 +1143,6 @@ class AppCubit extends Cubit<AppStates> {
     } catch (_) {}
   }
 
-  /// إرسال إشعار لمستخدم معين
   Future<void> sendNotification({
     required String userId,
     required String role,
@@ -1140,8 +1167,6 @@ class AppCubit extends Cubit<AppStates> {
     } catch (_) {}
   }
 
-  /// ← جديد: إرسال إشعار لكل المستخدمين الذين دورهم admin
-  /// تُستخدم بعد أي إجراء مهم (إضافة مخيم، تسجيل عائلة، توزيع مساعدة...)
   Future<void> notifyAllAdmins({
     required String title,
     required String message,
@@ -1174,7 +1199,6 @@ class AppCubit extends Cubit<AppStates> {
     } catch (_) {}
   }
 
-  /// ← جديد: إرسال إشعار لحساب النازح المرتبط بأسرة معيّنة (إن وُجد حساب مرتبط بـ familyId)
   Future<void> notifyFamilyUser({
     required String familyId,
     required String title,
@@ -1191,10 +1215,7 @@ class AppCubit extends Cubit<AppStates> {
           .limit(1)
           .get();
 
-      if (userQuery.docs.isEmpty) {
-        // الأسرة ما عندها حساب مستخدم مرتبط بعد — تجاهل بصمت
-        return;
-      }
+      if (userQuery.docs.isEmpty) return;
 
       final userId = userQuery.docs.first.id;
 
@@ -1230,7 +1251,7 @@ class AppCubit extends Cubit<AppStates> {
         aidDistributions = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
-        emit(AidSuccessState()); // أو أي state مناسبة عندك
+        emit(AidSuccessState());
       },
       onError: (_) {},
     );
@@ -1242,10 +1263,10 @@ class AppCubit extends Cubit<AppStates> {
     _aidSubscription = _db
         .collection('aid_distributions')
         .orderBy('createdAt', descending: true)
-        .snapshots(includeMetadataChanges: true) // ← جديد
+        .snapshots(includeMetadataChanges: true)
         .listen(
       (snapshot) {
-        _trackPendingWrites(snapshot, 'aid_distributions'); // ← جديد
+        _trackPendingWrites(snapshot, 'aid_distributions');
         aidDistributions = snapshot.docs.map((doc) {
           return {'id': doc.id, ...doc.data()};
         }).toList();
@@ -1260,7 +1281,7 @@ class AppCubit extends Cubit<AppStates> {
   }
 
   // ════════════════════════════════════════════════════════
-  //  Dashboard — يُحسَب محلياً من البيانات المُحمَّلة
+  //  Dashboard
   // ════════════════════════════════════════════════════════
   Map<String, dynamic> dashboardStats = {};
 
@@ -1328,6 +1349,37 @@ class AppCubit extends Cubit<AppStates> {
       emit(UploadFileSuccessState(uploadedFileUrl!));
     } catch (e) {
       emit(UploadFileErrorState(e.toString()));
+    }
+  }
+
+  // ════════════════════════════════════════════════════════
+  //  Cloudinary Upload — يعمل في Isolate منفصل لمنع تجميد الـ UI
+  // ════════════════════════════════════════════════════════
+  Future<String?> uploadImageToCloudinary(File imageFile) async {
+    const String cloudName = "dnbbywcdk";
+    const String uploadPreset = "ml_default";
+
+    try {
+      // قراءة الـ bytes على main thread — سريعة جداً من local storage
+      final bytes = await imageFile.readAsBytes();
+      final fileName = imageFile.path.split('/').last;
+
+      // رفع الـ bytes في Isolate منفصل — بدون أي platform channels
+      final result = await Isolate.run(
+        () => _uploadToCloudinaryIsolate({
+          'cloudName': cloudName,
+          'uploadPreset': uploadPreset,
+          'bytes': bytes,
+          'fileName': fileName,
+        }),
+      );
+
+      return result;
+    } on TimeoutException {
+      throw Exception('انتهت مهلة رفع الصورة — تحقق من اتصال الإنترنت');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('خطأ أثناء رفع الصورة: $e');
     }
   }
 

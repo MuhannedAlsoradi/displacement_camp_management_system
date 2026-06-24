@@ -474,12 +474,12 @@ class _DistributeTabState extends State<_DistributeTab> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.warning.withOpacity(0.3)),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
                     Icon(Icons.info_outline,
                         color: AppColors.warning, size: 16),
-                    const SizedBox(width: 8),
-                    const Expanded(
+                    SizedBox(width: 8),
+                    Expanded(
                       child: Text(
                         'يتحقق النظام تلقائياً من منع تكرار التوزيع لنفس الأسرة في نفس اليوم.',
                         style: TextStyle(

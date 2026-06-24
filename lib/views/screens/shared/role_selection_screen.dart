@@ -38,7 +38,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
   void _onContinue() {
     if (_selectedRole == null) return;
-    // TODO: Navigate to LoginScreen and pass the role
     Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -160,9 +159,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         elevation: 0,
                       ),
                       onPressed: _selectedRole != null ? _onContinue : null,
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             'متابعة',
                             style: TextStyle(

@@ -288,8 +288,8 @@ class _IdpHomeLayoutState extends State<IdpHomeLayout> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
           Icon(Icons.logout_rounded, color: AppColors.statusCritical, size: 22),
-          const SizedBox(width: 8),
-          const Text('تسجيل الخروج',
+          SizedBox(width: 8),
+          Text('تسجيل الخروج',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ]),
         content: const Text(

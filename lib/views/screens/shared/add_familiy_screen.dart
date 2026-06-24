@@ -285,7 +285,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.location_city_rounded,
+                  const Icon(Icons.location_city_rounded,
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
@@ -365,7 +365,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                     hintText: 'ابحث عن مدينة...',
                     hintStyle:
                         TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                    prefixIcon: Icon(Icons.search_rounded,
+                    prefixIcon: const Icon(Icons.search_rounded,
                         color: AppColors.primary, size: 20),
                     filled: true,
                     fillColor: const Color(0xFFF5F7FA),
@@ -432,7 +432,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                                       : const Color(0xFF1A1A2E),
                                 )),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle_rounded,
+                                ? const Icon(Icons.check_circle_rounded,
                                     color: AppColors.primary, size: 20)
                                 : null,
                           );
@@ -459,13 +459,13 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const Text('اسم المخيم',
+          const Row(children: [
+            Text('اسم المخيم',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF424242))),
-            const Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
+            Text(' *', style: TextStyle(color: Colors.red, fontSize: 13)),
           ]),
           const SizedBox(height: 6),
           GestureDetector(
@@ -480,14 +480,14 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.location_on_rounded,
+                  const Icon(Icons.location_on_rounded,
                       color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: campsLoading
                         ? Row(
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
@@ -630,7 +630,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                                           : Colors.grey))
                               : null,
                           trailing: isSelected
-                              ? Icon(Icons.check_circle_rounded,
+                              ? const Icon(Icons.check_circle_rounded,
                                   color: AppColors.primary, size: 20)
                               : null,
                         );
@@ -715,7 +715,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
           const SizedBox(height: 8),
           Text(
             'تم اختيار ${_selectedNeeds.length} احتياج',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               color: AppColors.primary,
               fontWeight: FontWeight.w500,
@@ -735,7 +735,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: const [
+          const Row(children: [
             Text('عدد أفراد العائلة',
                 style: TextStyle(
                     fontSize: 13,
@@ -753,7 +753,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.people_rounded, color: AppColors.primary, size: 20),
+                const Icon(Icons.people_rounded, color: AppColors.primary, size: 20),
                 const SizedBox(width: 12),
                 _counterButton(
                   icon: Icons.remove_rounded,
@@ -853,11 +853,11 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                       const BorderSide(color: AppColors.primary, width: 1.5)),
               errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.statusCritical)),
+                  borderSide: const BorderSide(color: AppColors.statusCritical)),
               focusedErrorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      BorderSide(color: AppColors.statusCritical, width: 1.5)),
+                      const BorderSide(color: AppColors.statusCritical, width: 1.5)),
             ),
             validator: isRequired
                 ? (v) => (v == null || v.isEmpty) ? 'هذا الحقل مطلوب' : null
@@ -1080,7 +1080,7 @@ class _AddFamilyScreenState extends State<AddFamilyScreen> {
                                     : const Color(0xFF1A1A2E),
                               )),
                           trailing: isSelected
-                              ? Icon(Icons.check_circle_rounded,
+                              ? const Icon(Icons.check_circle_rounded,
                                   color: AppColors.primary, size: 20)
                               : null,
                         );

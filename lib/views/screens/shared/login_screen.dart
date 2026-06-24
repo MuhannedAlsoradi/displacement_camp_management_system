@@ -1,8 +1,8 @@
 import 'package:displacement_camp_management_system/views/layout/admin_layout_screen.dart';
 import 'package:displacement_camp_management_system/views/layout/idp_layout_screen.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../layout/volunteer_layout_screen.dart';
 import '../../../controllers/cubit/app_cubit.dart';
@@ -11,20 +11,76 @@ import '../../../utils/enums/user_role.dart';
 import '../../../utils/styles/colors.dart';
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key, required this.role});
+  const LoginScreen({super.key, required this.role});
   final UserRole role;
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool isPasswordHidden = true;
-  bool isLoading = false;
+  bool rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  // ─── تحميل البيانات المحفوظة عند فتح شاشة اللوجن ────────────────────────
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedRemember = prefs.getBool('remember_me') ?? false;
+    final savedRole = prefs.getString('saved_role') ?? '';
+
+    // نحمّل البيانات فقط لو كان تذكرني مفعّل ونفس الدور الحالي
+    if (savedRemember && savedRole == _roleKey()) {
+      setState(() {
+        usernameController.text = prefs.getString('saved_username') ?? '';
+        passwordController.text = prefs.getString('saved_password') ?? '';
+        rememberMe = true;
+      });
+    }
+  }
+
+  // ─── حفظ أو مسح البيانات حسب حالة تذكرني ────────────────────────────────
+  Future<void> _saveCredentials(String username, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (rememberMe) {
+      await prefs.setString('saved_username', username);
+      await prefs.setString('saved_password', password);
+      await prefs.setString('saved_role', _roleKey());
+      await prefs.setBool('remember_me', true);
+    } else {
+      await prefs.remove('saved_username');
+      await prefs.remove('saved_password');
+      await prefs.remove('saved_role');
+      await prefs.setBool('remember_me', false);
+    }
+  }
+
+  String _roleKey() {
+    switch (widget.role) {
+      case UserRole.admin:
+        return 'admin';
+      case UserRole.volunteer:
+        return 'volunteer';
+      case UserRole.displaced:
+        return 'displaced';
+    }
+  }
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Header
+              // ─── Header ──────────────────────────────────────────────────
               Container(
                 height: 220,
                 width: double.infinity,
@@ -49,16 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppColors.backgroundCard,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.home_work_outlined,
                           color: AppColors.primary,
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Text(
-                          "نظام إدارة المخيمات",
+                          'نظام إدارة المخيمات',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryDark,
@@ -70,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // Card
+              // ─── Card ─────────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
                 child: Card(
@@ -103,53 +159,43 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 25),
 
-                          // Username Field
+                          // ─── Username ─────────────────────────────────────
                           TextFormField(
                             controller: usernameController,
+                            textDirection: TextDirection.rtl,
                             decoration: InputDecoration(
                               labelText: 'اسم المستخدم',
                               labelStyle: const TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
+                                  color: AppColors.textSecondary),
                               hintText: 'أدخل اسم المستخدم',
-                              hintStyle: const TextStyle(
-                                color: AppColors.textHint,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.person,
-                                color: AppColors.textHint,
-                              ),
+                              hintStyle:
+                                  const TextStyle(color: AppColors.textHint),
+                              prefixIcon: const Icon(Icons.person,
+                                  color: AppColors.textHint),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.border,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.border),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.border,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.border),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1.5,
-                                ),
+                                    color: AppColors.primary, width: 1.5),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.danger,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.danger),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: const BorderSide(
-                                  color: AppColors.danger,
-                                  width: 1.5,
-                                ),
+                                    color: AppColors.danger, width: 1.5),
                               ),
                             ),
                             validator: (value) {
@@ -162,29 +208,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           const SizedBox(height: 15),
 
-                          // Password Field
+                          // ─── Password ─────────────────────────────────────
                           TextFormField(
                             controller: passwordController,
                             obscureText: isPasswordHidden,
                             decoration: InputDecoration(
                               labelText: 'كلمة المرور',
                               labelStyle: const TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
+                                  color: AppColors.textSecondary),
                               hintText: '*******',
-                              hintStyle: const TextStyle(
-                                color: AppColors.textHint,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.lock,
-                                color: AppColors.textHint,
-                              ),
+                              hintStyle:
+                                  const TextStyle(color: AppColors.textHint),
+                              prefixIcon: const Icon(Icons.lock,
+                                  color: AppColors.textHint),
                               suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    isPasswordHidden = !isPasswordHidden;
-                                  });
-                                },
+                                onPressed: () => setState(
+                                    () => isPasswordHidden = !isPasswordHidden),
                                 icon: Icon(
                                   isPasswordHidden
                                       ? Icons.visibility_off
@@ -194,35 +233,28 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.border,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.border),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.border,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.border),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1.5,
-                                ),
+                                    color: AppColors.primary, width: 1.5),
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: const BorderSide(
-                                  color: AppColors.danger,
-                                ),
+                                borderSide:
+                                    const BorderSide(color: AppColors.danger),
                               ),
                               focusedErrorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
                                 borderSide: const BorderSide(
-                                  color: AppColors.danger,
-                                  width: 1.5,
-                                ),
+                                    color: AppColors.danger, width: 1.5),
                               ),
                             ),
                             validator: (value) {
@@ -233,20 +265,62 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
 
-                          // Forgot Password
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              child: const Text(
-                                'نسيت كلمة المرور؟',
-                                style: TextStyle(color: AppColors.secondary),
-                              ),
+                          const SizedBox(height: 8),
+
+                          // ─── تذكرني Checkbox ──────────────────────────────
+                          GestureDetector(
+                            onTap: () =>
+                                setState(() => rememberMe = !rememberMe),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: rememberMe
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: rememberMe
+                                          ? AppColors.primary
+                                          : AppColors.border,
+                                      width: 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: rememberMe
+                                      ? const Icon(Icons.check,
+                                          color: Colors.white, size: 14)
+                                      : null,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'تذكرني',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+
+                          const SizedBox(height: 20),
+
+                          // ─── Login Button ─────────────────────────────────
                           BlocConsumer<AppCubit, AppStates>(
-                            listener: (context, state) {
+                            listener: (context, state) async {
                               if (state is LoginSuccessState) {
+                                // حفظ البيانات لو تذكرني مفعّل
+                                await _saveCredentials(
+                                  usernameController.text.trim(),
+                                  passwordController.text.trim(),
+                                );
+
+                                if (!context.mounted) return;
+
                                 switch (AppCubit.get(context).currentRole!) {
                                   case UserRole.displaced:
                                     Navigator.pushAndRemoveUntil(
@@ -264,6 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           builder: (_) => const HomeLayout()),
                                       (route) => false,
                                     );
+                                    break;
                                   case UserRole.volunteer:
                                     Navigator.pushAndRemoveUntil(
                                       context,
@@ -275,6 +350,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     break;
                                 }
                               }
+
                               if (state is LoginErrorState) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -330,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                               );
                             },
-                          ), // Login Button
+                          ),
                         ],
                       ),
                     ),
@@ -338,20 +414,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // Support
-              Column(
+              // ─── Footer ───────────────────────────────────────────────────
+              const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
+                  SizedBox(height: 10),
+                  Text(
                     'Gaza Camp Management System 2026 ©',
                     style: TextStyle(
                       color: AppColors.textHint,
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 45),
                 ],
               ),
             ],

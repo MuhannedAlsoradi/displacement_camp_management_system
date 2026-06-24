@@ -257,7 +257,7 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
           hintText: 'ابحث باسم المخيم أو الموقع...',
-          hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
+          hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
           prefixIcon: const Icon(Icons.search_rounded,
               color: AppColors.textHint, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
@@ -401,12 +401,12 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
                         Text('تعديل الحالة'),
                       ]),
                     ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'delete',
                       child: Row(children: [
                         Icon(Icons.delete_outline,
                             size: 18, color: AppColors.statusCritical),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text('حذف المخيم',
                             style: TextStyle(color: AppColors.statusCritical)),
                       ]),
@@ -719,12 +719,12 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.statusCritical, size: 22),
-            const SizedBox(width: 8),
-            const Text('تأكيد الحذف',
+            SizedBox(width: 8),
+            Text('تأكيد الحذف',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -841,7 +841,15 @@ class _CampsManagementScreenState extends State<CampsManagementScreen> {
               ),
               onPressed: () {
                 Navigator.pop(context);
-                cubit.updateCamp(camp['id'], {'status': selectedStatus});
+                cubit.updateCamp(
+                  campId: '${camp['id']}',
+                  name: camp['name'] ?? '', // تمرير الاسم الحالي للمخيم
+                  location:
+                      camp['location'] ?? '', // تمرير الموقع الحالي للمخيم
+                  status: selectedStatus,
+                  capacity:
+                      camp['capacity'], // تمرير الحالة الجديدة التي اخترتها
+                );
               },
               child: const Text('حفظ التغييرات'),
             ),
@@ -893,7 +901,7 @@ class _ErrorView extends StatelessWidget {
               color: AppColors.statusCritical.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(Icons.wifi_off_rounded,
+            child: const Icon(Icons.wifi_off_rounded,
                 color: AppColors.statusCritical, size: 40),
           ),
           const SizedBox(height: 12),

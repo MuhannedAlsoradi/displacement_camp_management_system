@@ -178,12 +178,12 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded,
                 color: AppColors.statusCritical, size: 22),
-            const SizedBox(width: 8),
-            const Text('تأكيد الحذف',
+            SizedBox(width: 8),
+            Text('تأكيد الحذف',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -310,7 +310,7 @@ class _DisplacedManagementScreenState extends State<DisplacedManagementScreen> {
                                 ),
                               ),
                               if (isSelected)
-                                Icon(Icons.check_circle,
+                                const Icon(Icons.check_circle,
                                     color: AppColors.primary, size: 18),
                             ],
                           ),
@@ -853,12 +853,12 @@ class _FamilyCard extends StatelessWidget {
                     Text('تعيين خيمة'),
                   ]),
                 ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'delete',
                   child: Row(children: [
                     Icon(Icons.delete_outline,
                         size: 18, color: AppColors.statusCritical),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text('حذف العائلة',
                         style: TextStyle(color: AppColors.statusCritical)),
                   ]),
@@ -938,7 +938,7 @@ class _ErrorView extends StatelessWidget {
               color: AppColors.statusCritical.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(Icons.wifi_off_rounded,
+            child: const Icon(Icons.wifi_off_rounded,
                 color: AppColors.statusCritical, size: 40),
           ),
           const SizedBox(height: 12),

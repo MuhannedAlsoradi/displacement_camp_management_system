@@ -71,7 +71,7 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                 style: TextStyle(color: Colors.white)),
           ),
           body: Column(children: [
-            Padding(
+            const Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: ConnectivityBanner(),
             ),
@@ -190,12 +190,12 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
                   Text('تعديل الكمية'),
                 ]),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'delete',
                 child: Row(children: [
                   Icon(Icons.delete_outline,
                       size: 18, color: AppColors.statusCritical),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text('حذف',
                       style: TextStyle(color: AppColors.statusCritical)),
                 ]),
@@ -403,11 +403,11 @@ class _ResourceManagementScreenState extends State<ResourceManagementScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
+        title: const Row(children: [
           Icon(Icons.warning_amber_rounded,
               color: AppColors.statusCritical, size: 22),
-          const SizedBox(width: 8),
-          const Text('تأكيد الحذف',
+          SizedBox(width: 8),
+          Text('تأكيد الحذف',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ]),
         content: Text('هل تريد حذف نوع المساعدة "${resource['aidType']}"؟',

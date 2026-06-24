@@ -1,14 +1,18 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:displacement_camp_management_system/utils/styles/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../controllers/cubit/app_cubit.dart';
 import '../../../controllers/cubit/app_states.dart';
+import 'package:path_provider/path_provider.dart';
 
 class AddCampScreen extends StatefulWidget {
-  const AddCampScreen({super.key});
+  final Map<String, dynamic>? camp;
+  const AddCampScreen({super.key, this.camp});
 
   @override
   State<AddCampScreen> createState() => _AddCampScreenState();
@@ -23,9 +27,22 @@ class _AddCampScreenState extends State<AddCampScreen> {
 
   String _selectedStatus = 'متاح';
 
-  // ─── الصورة المختارة ─────────────────────────────────────────
+  // ─── الصورة المختارة والقديمة ────────────────────────────────
   File? _selectedImage;
+  String? _existingImageUrl;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.camp != null) {
+      _nameController.text = widget.camp!['name'] ?? '';
+      _locationController.text = widget.camp!['location'] ?? '';
+      _capacityController.text = (widget.camp!['capacity'] ?? 0).toString();
+      _selectedStatus = widget.camp!['status'] ?? 'متاح';
+      _existingImageUrl = widget.camp!['image'];
+    }
+  }
 
   // ─── الحالات الثلاث مع ألوانها من AppColors ─────────────────
   final List<Map<String, dynamic>> _statusOptions = [
@@ -61,8 +78,24 @@ class _AddCampScreenState extends State<AddCampScreen> {
         imageQuality: 75,
         maxWidth: 1200,
       );
-      if (picked != null) {
-        setState(() => _selectedImage = File(picked.path));
+      if (picked == null) return;
+
+      // ضغط إضافي قبل الرفع
+      final tempDir = await getTemporaryDirectory();
+      final targetPath =
+          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
+
+      final compressed = await FlutterImageCompress.compressAndGetFile(
+        picked.path,
+        targetPath,
+        quality: 60,
+        minWidth: 800,
+        minHeight: 600,
+        format: CompressFormat.jpeg,
+      );
+
+      if (compressed != null) {
+        setState(() => _selectedImage = File(compressed.path));
       }
     } catch (_) {}
   }
@@ -118,12 +151,17 @@ class _AddCampScreenState extends State<AddCampScreen> {
                   ),
                 ],
               ),
-              if (_selectedImage != null) ...[
+              if (_selectedImage != null ||
+                  (_existingImageUrl != null &&
+                      _existingImageUrl!.isNotEmpty)) ...[
                 const SizedBox(height: 10),
                 TextButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
-                    setState(() => _selectedImage = null);
+                    setState(() {
+                      _selectedImage = null;
+                      _existingImageUrl = null;
+                    });
                   },
                   icon: const Icon(Icons.delete_outline,
                       color: AppColors.statusCritical, size: 18),
@@ -175,27 +213,41 @@ class _AddCampScreenState extends State<AddCampScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    AppCubit.get(context).addCamp(
-      name: _nameController.text.trim(),
-      location: _locationController.text.trim(),
-      capacity: int.parse(_capacityController.text.trim()),
-      status: _selectedStatus,
-      imageFile: _selectedImage,
-    );
+    if (widget.camp != null) {
+      AppCubit.get(context).updateCamp(
+        campId: widget.camp!['id'],
+        name: _nameController.text.trim(),
+        location: _locationController.text.trim(),
+        capacity: int.parse(_capacityController.text.trim()),
+        status: _selectedStatus,
+        imageFile: _selectedImage,
+        existingImageUrl: _existingImageUrl,
+      );
+    } else {
+      AppCubit.get(context).addCamp(
+        name: _nameController.text.trim(),
+        location: _locationController.text.trim(),
+        capacity: int.parse(_capacityController.text.trim()),
+        status: _selectedStatus,
+        imageFile: _selectedImage,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AppCubit, AppStates>(
       listener: (context, state) {
-        if (state is AddCampSuccessState) {
+        if (state is AddCampSuccessState || state is UpdateCampSuccessState) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text('تم إضافة المخيم بنجاح'),
+                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                  Text(widget.camp != null
+                      ? 'تم تعديل المخيم بنجاح'
+                      : 'تم إضافة المخيم بنجاح'),
                 ],
               ),
               backgroundColor: AppColors.statusStable,
@@ -205,7 +257,11 @@ class _AddCampScreenState extends State<AddCampScreen> {
             ),
           );
           Navigator.pop(context);
-        } else if (state is AddCampErrorState) {
+        } else if (state is AddCampErrorState ||
+            state is UpdateCampErrorState) {
+          final errorMsg = state is AddCampErrorState
+              ? state.error
+              : (state as UpdateCampErrorState).error;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
@@ -213,7 +269,7 @@ class _AddCampScreenState extends State<AddCampScreen> {
                   const Icon(Icons.error_outline,
                       color: Colors.white, size: 18),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(state.error)),
+                  Expanded(child: Text(errorMsg)),
                 ],
               ),
               backgroundColor: AppColors.statusCritical,
@@ -225,7 +281,8 @@ class _AddCampScreenState extends State<AddCampScreen> {
         }
       },
       builder: (context, state) {
-        final isLoading = state is AddCampLoadingState;
+        final isLoading =
+            state is AddCampLoadingState || state is UpdateCampLoadingState;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF5F7FA),
@@ -238,9 +295,9 @@ class _AddCampScreenState extends State<AddCampScreen> {
               icon: const Icon(Icons.arrow_back_ios_new,
                   color: Color(0xFF1A1A2E), size: 20),
             ),
-            title: const Text(
-              'إضافة مخيم جديد',
-              style: TextStyle(
+            title: Text(
+              widget.camp != null ? 'تعديل المخيم' : 'إضافة مخيم جديد',
+              style: const TextStyle(
                 color: Color(0xFF1A1A2E),
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -338,36 +395,58 @@ class _AddCampScreenState extends State<AddCampScreen> {
 
   // ─── Widgets ──────────────────────────────────────────────────────────────
 
+  Widget _buildExistingImage(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return Container(color: Colors.grey.shade100);
+    }
+
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => Container(
+        color: AppColors.primary.withOpacity(0.05),
+        child: const Center(
+          child: CircularProgressIndicator(
+              color: AppColors.primary, strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (_, __, ___) => Container(color: Colors.grey.shade100),
+    );
+  }
+
   Widget _buildImagePicker() {
+    final hasImage = _selectedImage != null ||
+        (_existingImageUrl != null && _existingImageUrl!.isNotEmpty);
+
     return GestureDetector(
       onTap: _showImageSourceDialog,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        height: _selectedImage != null ? 180 : 120,
+        height: hasImage ? 180 : 120,
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _selectedImage != null
-                ? AppColors.primary
-                : Colors.grey.shade300,
-            width: _selectedImage != null ? 2 : 1.5,
+            color: hasImage ? AppColors.primary : Colors.grey.shade300,
+            width: hasImage ? 2 : 1.5,
             style: BorderStyle.solid,
           ),
-          color: _selectedImage != null
+          color: hasImage
               ? Colors.transparent
               : AppColors.primary.withOpacity(0.03),
         ),
-        child: _selectedImage != null
+        child: hasImage
             ? Stack(
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: Image.file(
-                      _selectedImage!,
-                      fit: BoxFit.cover,
-                    ),
+                    child: _selectedImage != null
+                        ? Image.file(
+                            _selectedImage!,
+                            fit: BoxFit.cover,
+                          )
+                        : _buildExistingImage(_existingImageUrl),
                   ),
                   // زر التغيير
                   Positioned(
@@ -459,26 +538,33 @@ class _AddCampScreenState extends State<AddCampScreen> {
               color: AppColors.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.add_home_work_outlined,
-                color: AppColors.primary, size: 22),
+            child: Icon(
+              widget.camp != null
+                  ? Icons.edit_note_outlined
+                  : Icons.add_home_work_outlined,
+              color: AppColors.primary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'مخيم جديد',
-                  style: TextStyle(
+                  widget.camp != null ? 'تعديل المخيم' : 'مخيم جديد',
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1A1A2E),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'أدخل بيانات المخيم الأساسية',
-                  style: TextStyle(
+                  widget.camp != null
+                      ? 'قم بتحديث بيانات وصورة المخيم'
+                      : 'أدخل بيانات المخيم الأساسية',
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
@@ -570,11 +656,11 @@ class _AddCampScreenState extends State<AddCampScreen> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.statusCritical),
+          borderSide: const BorderSide(color: AppColors.statusCritical),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.statusCritical, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.statusCritical, width: 1.5),
         ),
       ),
     );

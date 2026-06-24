@@ -54,7 +54,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                     color: AppColors.statusCritical.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.wifi_off_rounded,
+                  child: const Icon(Icons.wifi_off_rounded,
                       color: AppColors.statusCritical, size: 40),
                 ),
                 const SizedBox(height: 12),
@@ -225,7 +225,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => AidDistributionScreen(),
+                            builder: (context) => const AidDistributionScreen(),
                           )),
                     ),
                     _actionButton(
@@ -592,7 +592,7 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
               ],
             ),
           ),
-          Icon(Icons.arrow_forward_ios_rounded,
+          const Icon(Icons.arrow_forward_ios_rounded,
               size: 14, color: AppColors.textHint),
         ],
       ),
@@ -658,14 +658,4 @@ class _DashboardAdminScreenState extends State<DashboardAdminScreen> {
     }
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature — قريباً'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 }

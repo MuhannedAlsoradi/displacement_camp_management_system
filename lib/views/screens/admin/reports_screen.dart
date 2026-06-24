@@ -103,7 +103,7 @@ class ReportsScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               if (campStats.isEmpty)
-                _EmptyCard(message: 'لا توجد مخيمات مسجلة')
+                const _EmptyCard(message: 'لا توجد مخيمات مسجلة')
               else
                 Container(
                   decoration: BoxDecoration(
@@ -133,7 +133,7 @@ class ReportsScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               if (aidByType.isEmpty)
-                _EmptyCard(message: 'لا توجد سجلات مساعدات')
+                const _EmptyCard(message: 'لا توجد سجلات مساعدات')
               else
                 Container(
                   decoration: BoxDecoration(
@@ -186,7 +186,7 @@ class ReportsScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               if (families.isEmpty)
-                _EmptyCard(message: 'لا توجد أسر مسجلة')
+                const _EmptyCard(message: 'لا توجد أسر مسجلة')
               else ...[
                 () {
                   final Map<String, int> byCamp = {};
@@ -244,7 +244,7 @@ class ReportsScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               if (activities.isEmpty)
-                _EmptyCard(message: 'لا توجد نشاطات مسجلة')
+                const _EmptyCard(message: 'لا توجد نشاطات مسجلة')
               else
                 Column(
                   children: activities
@@ -536,7 +536,7 @@ class _AidDonutSummary extends StatelessWidget {
         Stack(
           alignment: Alignment.center,
           children: [
-            SizedBox(
+            const SizedBox(
               width: 80,
               height: 80,
               child: CircularProgressIndicator(

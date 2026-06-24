@@ -410,12 +410,12 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
                   Text(isAvailable ? 'تعيين كغير متاحة' : 'تعيين كمتاحة'),
                 ]),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'delete',
                 child: Row(children: [
                   Icon(Icons.delete_outline,
                       size: 18, color: AppColors.statusCritical),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text('حذف',
                       style: TextStyle(color: AppColors.statusCritical)),
                 ]),
@@ -446,11 +446,11 @@ class _TentManagementScreenState extends State<TentManagementScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(children: [
+        title: const Row(children: [
           Icon(Icons.warning_amber_rounded,
               color: AppColors.statusCritical, size: 22),
-          const SizedBox(width: 8),
-          const Text('تأكيد الحذف',
+          SizedBox(width: 8),
+          Text('تأكيد الحذف',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ]),
         content: Text(

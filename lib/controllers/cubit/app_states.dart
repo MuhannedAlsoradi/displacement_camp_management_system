@@ -42,7 +42,14 @@ class DeleteCampErrorState extends AppStates {
   DeleteCampErrorState(this.error);
 }
 
+class UpdateCampLoadingState extends AppStates {}
+
 class UpdateCampSuccessState extends AppStates {}
+
+class UpdateCampErrorState extends AppStates {
+  final String error;
+  UpdateCampErrorState(this.error);
+}
 
 // Displaced Persons
 class DisplacedLoadingState extends AppStates {}
